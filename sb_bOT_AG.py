@@ -609,24 +609,23 @@ async def rep(message:types.Message):
         global opid, nid, rmessage_id, rchat_id, opun, nun
         if message.reply_to_message:
             print(message.chat.id)
-            if message.chat.id == -1002308587530:
-                rchat_id = message.chat.id
-                message_id = message.reply_to_message.message_id
-                opid = message.from_user.id
-                opnm = message.from_user.full_name
-                opun = message.from_user.username
-                nid = message.reply_to_message.from_user.id
-                nnm = message.reply_to_message.from_user.full_name
-                nun = message.reply_to_message.from_user.username
-                tm = message.reply_to_message.text
-                tomsgid = [1758430459]
-                for i in tomsgid:
-                    await bot.send_message(i, f'В чате обнаружено подозрительное <a href="https://t.me/c/2308587530/{message_id}">сообщение</a>!\n \n \n \n'
+            rchat_id = message.chat.id
+            message_id = message.reply_to_message.message_id
+            opid = message.from_user.id
+            opnm = message.from_user.full_name
+            opun = message.from_user.username
+            nid = message.reply_to_message.from_user.id
+            nnm = message.reply_to_message.from_user.full_name
+            nun = message.reply_to_message.from_user.username
+            tm = message.reply_to_message.text
+            tomsgid = [1758430459, 1042704010, 1132619666, 1329032674, 157398547, 1722862662]
+            for i in tomsgid:
+                await bot.send_message(i, f'В чате обнаружено подозрительное <a href="https://t.me/c/2308587530/{message_id}">сообщение</a>!\n \n \n \n'
                                                     f'{opnm} @{opun} пожаловался на {nnm} @{nun}\n \n \n \nТекст сообщения: {tm} \n'
                                                     f'<a href="https://t.me/c/2308587530/{message_id}">Перейти к сообщению</a>', parse_mode="HTML",
                                                     disable_web_page_preview=True, reply_markup=g.as_markup())
-                await message.reply('Спасибо за жалобу на сообщение! Отправлено уведомление админам')
-                await message.delete()
+            await message.reply('Спасибо за жалобу на сообщение! Отправлено уведомление админам')
+            await message.delete()
         else:
             await message.reply('Используй это в ответ на сообщение')
             await message.delete()
