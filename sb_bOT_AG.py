@@ -25,7 +25,7 @@ get_chat_id = -1002308587530
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
-db = sqlite3.connect('sb.db')
+db = sqlite3.connect('../sb.db')
 cursor = db.cursor()
 
 helpt = ('Функционал:\n'
@@ -71,17 +71,17 @@ tt = (
     "11) Язык чата - русский")
 
 
-file = open('banwords.txt', 'r', encoding='utf-8')
+file = open('../banwords.txt', 'r', encoding='utf-8')
 banwordlist = []
 for i in file:
     banwordlist.append(i.replace('\n', '', 1))
 file.close()
-f = open('urlwhitelist.txt', 'r')
+f = open('../urlwhitelist.txt', 'r')
 wlu = []
 for i in f:
     wlu.append(i.replace('\n', '', 1))
 f.close()
-l = open('banwordsprof.txt', 'r', encoding='utf-8')
+l = open('../banwordsprof.txt', 'r', encoding='utf-8')
 bwp =[]
 for i in l:
     bwp.append(i.replace('\n', '', 1))
@@ -622,11 +622,16 @@ async def rep(message:types.Message):
             await message.delete()
             tomsgid = [1758430459, 1042704010, 1132619666, 1329032674, 157398547, 1722862662]
             for i in tomsgid:
-                await bot.send_message(i, f'В чате обнаружено подозрительное <a href="https://t.me/c/2308587530/{message_id}">сообщение</a>!\n \n \n \n'
+                await bot.send_message(i, f'В чате обнаружено подозрительное <a href="https://t.me/c/2308587530/{rmessage_id}">сообщение</a>!\n \n \n \n'
                                                     f'{opnm} @{opun} пожаловался на {nnm} @{nun}\n \n \n \nТекст сообщения: {tm} \n'
-                                                    f'<a href="https://t.me/c/2308587530/{message_id}">Перейти к сообщению</a>', parse_mode="HTML",
+                                                    f'<a href="https://t.me/c/2308587530/{rmessage_id}">Перейти к сообщению</a>', parse_mode="HTML",
                                                     disable_web_page_preview=True, reply_markup=g.as_markup())
+###
 
+
+        ###
+
+        #
         else:
             await message.reply('Используй это в ответ на сообщение')
             await message.delete()
