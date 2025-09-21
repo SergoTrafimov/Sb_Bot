@@ -216,7 +216,7 @@ async def handle_chatoff(message: types.Message):
 
 @dp.callback_query(lambda i: i.data in ['mn', 'mo', 'bn', 'bo', 'dd', 'sk', "cpt"])
 async def rep(callback: types.CallbackQuery):
-    global opid, nid, rmessage_id, rchat_id, opun, nun, user
+    global opid, nid, rmessage_id, rchat_id, opun, nun, nuid
     if callback.data == 'mn':
         permissions = ChatPermissions(can_send_messages=False)
         until_date = time.time() + 3600
@@ -252,7 +252,7 @@ async def rep(callback: types.CallbackQuery):
     if callback.data == "sk":
         await bot.delete_message(callback.message.chat.id, callback.message.message_id)
     if callback.data == "cpt":
-        if callback.from_user.id == user.id:
+        if callback.from_user.id == nuid:
             chatid = callback.message.chat.id
             permissions = ChatPermissions(
                 can_send_messages=True,
@@ -267,7 +267,7 @@ async def rep(callback: types.CallbackQuery):
             await callback.message.edit_reply_markup(reply_markup=None)
         else:
             await callback.answer(
-                f"⚠️ Внимание!\n\nЭто сообщение для {user.full_name}",
+                f"⚠️ Внимание!\n\nЭто сообщение для {nuf}",
                 show_alert=True)
 
 
@@ -664,9 +664,12 @@ async def autor_response(message: types.Message, state: FSMContext):
 
 @dp.chat_member(ChatMemberUpdatedFilter(IS_NOT_MEMBER >> IS_MEMBER))
 async def on_user_joined_html_mention(event: ChatMemberUpdated):
+    global nuid, nuf
     if on == 1:
         user = event.new_chat_member.user
         chat = event.chat
+        nuid = user.id
+        nuf = user.full_name
 
         # Пропускаем ботов
         if user.is_bot:
@@ -859,6 +862,7 @@ async def bw(message: types.Message):
 
 async def main():
     await dp.start_polling(bot)
+#
 
 
 if __name__ == '__main__':
