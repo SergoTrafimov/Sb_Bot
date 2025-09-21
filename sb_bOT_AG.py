@@ -610,7 +610,7 @@ async def rep(message:types.Message):
         if message.reply_to_message:
             print(message.chat.id)
             rchat_id = message.chat.id
-            message_id = message.reply_to_message.message_id
+            rmessage_id = message.reply_to_message.message_id
             opid = message.from_user.id
             opnm = message.from_user.full_name
             opun = message.from_user.username
