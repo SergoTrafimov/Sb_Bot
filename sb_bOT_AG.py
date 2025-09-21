@@ -25,7 +25,7 @@ get_chat_id = -1002308587530
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
-db = sqlite3.connect('../sb.db')
+db = sqlite3.connect('sb.db')
 cursor = db.cursor()
 
 helpt = ('Функционал:\n'
@@ -71,17 +71,17 @@ tt = (
     "11) Язык чата - русский")
 
 
-file = open('../banwords.txt', 'r', encoding='utf-8')
+file = open('banwords.txt', 'r', encoding='utf-8')
 banwordlist = []
 for i in file:
     banwordlist.append(i.replace('\n', '', 1))
 file.close()
-f = open('../urlwhitelist.txt', 'r')
+f = open('urlwhitelist.txt', 'r')
 wlu = []
 for i in f:
     wlu.append(i.replace('\n', '', 1))
 f.close()
-l = open('../banwordsprof.txt', 'r', encoding='utf-8')
+l = open('banwordsprof.txt', 'r', encoding='utf-8')
 bwp =[]
 for i in l:
     bwp.append(i.replace('\n', '', 1))
@@ -240,6 +240,7 @@ async def rep(callback: types.CallbackQuery):
         await bot.send_message(chat_id, "Готово")
         await bot.delete_message(callback.message.chat.id, callback.message.message_id)
     if callback.data == 'bo':
+        chat_id=callback.from_user.id
         await bot.ban_chat_member(rchat_id, nid)
         await bot.send_message(rchat_id, f"Пользователь @{opun} забанен")
         await bot.send_message(chat_id, "Готово")
@@ -247,6 +248,7 @@ async def rep(callback: types.CallbackQuery):
         await bot.delete_message(callback.message.chat.id, callback.message.message_id)
     if callback.data == "dd":
         await bot.delete_message(rchat_id, rmessage_id)
+        chat_id=callback.from_user.id
         await bot.send_message(chat_id, "Готово")
         await bot.delete_message(callback.message.chat.id, callback.message.message_id)
     if callback.data == "sk":
