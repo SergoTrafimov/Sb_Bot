@@ -622,7 +622,7 @@ async def rep(message:types.Message):
             tm = message.reply_to_message.text
             await message.reply('Спасибо за жалобу на сообщение! Отправлено уведомление админам')
             await message.delete()
-            tomsgid = [1758430459, 1042704010, 1132619666, 1329032674, 157398547, 1722862662]
+            tomsgid = [1758430459, 1042704010, 1132619666,  157398547, 1722862662, 1329032674]
             for i in tomsgid:
                 await bot.send_message(i, f'В чате обнаружено подозрительное <a href="https://t.me/c/2308587530/{rmessage_id}">сообщение</a>!\n \n \n \n'
                                                     f'{opnm} @{opun} пожаловался на {nnm} @{nun}\n \n \n \nТекст сообщения: {tm} \n'
