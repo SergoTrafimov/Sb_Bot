@@ -311,7 +311,7 @@ async def warn_user(message: types.Message):
 
             try:
                 if not message.reply_to_message:
-                    t = message.text.split(maxsplit=3)
+                    t = message.text.split(maxsplit=2)
                     up = t[1]
                     pr = t[2]
                     if up[0] == '@':
