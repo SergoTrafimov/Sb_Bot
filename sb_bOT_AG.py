@@ -106,7 +106,7 @@ async def vkl(message: types.Message):
     global on
     chat_id = message.chat.id
     user_id = message.from_user.id
-    if await is_user_admin(chat_id, user_id):
+    if await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079):
         on = 0
         await message.reply('Бот выключен, чтобы включить введите команду /on')
         await message.delete()
@@ -118,7 +118,7 @@ async def vkl(message: types.Message):
     global on
     chat_id = message.chat.id
     user_id = message.from_user.id
-    if await is_user_admin(chat_id, user_id):
+    if await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079):
         on = 1
         await message.reply('Бот включен, чтобы выключить введите команду /off')
         await message.delete()
@@ -130,7 +130,7 @@ async def open_chat_full_permissions(message: types.Message):
     chat_id = message.chat.id
     user_id = message.from_user.id
 
-    if not await is_user_admin(chat_id, user_id):
+    if not (await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079)):
         await message.delete()
         return
 
@@ -175,7 +175,7 @@ async def close_chat_no_permissions(message: types.Message):
     chat_id = message.chat.id
     user_id = message.from_user.id
 
-    if not await is_user_admin(chat_id, user_id):
+    if not (await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079)):
         await message.delete()
         return
 
@@ -307,7 +307,7 @@ async def warn_user(message: types.Message):
         user_id = message.from_user.id
         ap = message.from_user.username
 
-        if await is_user_admin(chat_id, user_id):
+        if await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079):
 
             try:
                 if not message.reply_to_message:
@@ -353,7 +353,7 @@ async def warn_user(message: types.Message):
         user_id = message.from_user.id
         ap = message.from_user.username
 
-        if await is_user_admin(chat_id, user_id):
+        if await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079):
 
             try:
                 if not message.reply_to_message:
@@ -408,7 +408,7 @@ async def ban_user(message: types.Message):
         chat_id = message.chat.id
         user_id = message.from_user.id
 
-        if await is_user_admin(chat_id, user_id):
+        if await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079):
 
                 try:
                     if not message.reply_to_message:
@@ -442,7 +442,7 @@ async def unban_user(message: types.Message):
         chat_id = message.chat.id
         user_id = message.from_user.id
 
-        if await is_user_admin(chat_id, user_id):
+        if await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079):
 
             try:
                 if not message.reply_to_message:
@@ -469,7 +469,7 @@ async def mute_user(message: types.Message):
         chat_id = message.chat.id
         user_id = message.from_user.id
 
-        if not await is_user_admin(chat_id, user_id):
+        if not (await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079)):
             await message.delete()
             return
 
@@ -557,7 +557,7 @@ async def unmute_user(message: types.Message):
         chat_id = message.chat.id
         user_id = message.from_user.id
 
-        if not await is_user_admin(chat_id, user_id):
+        if not (await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079)):
             await message.delete()
             return
 
