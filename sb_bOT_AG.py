@@ -786,7 +786,7 @@ async def handle_entity_links(message: types.Message):
 @dp.message(F.text)
 async def bw(message: types.Message):
     if on == 1:
-        if message.from_user.id == 777000 or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001372687943):
+        if message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001372687943:
             await message.reply("В комментариях действуют следующие правила:\n" + tt)
             return
         chat_id = message.chat.id
@@ -829,7 +829,7 @@ async def bw(message: types.Message):
             if found_bad_word:
                 break  # Прерываем внешний цикл
 
-        if found_bad_word:
+        if found_bad_word and not (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001628633023):
             try:
                 up = message.from_user.username or message.from_user.first_name
 
