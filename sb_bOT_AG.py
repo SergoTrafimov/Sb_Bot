@@ -626,7 +626,7 @@ async def rep(message:types.Message):
             for i in tomsgid:
                 await bot.send_message(i, f'В чате обнаружено подозрительное <a href="https://t.me/c/1398602500/{rmessage_id}">сообщение</a>!\n \n \n \n'
                                                     f'{opnm} @{opun} пожаловался на {nnm} @{nun}\n \n \n \nТекст сообщения: {tm} \n'
-                                                    f'<a href="https://t.me/c/2308587530/{rmessage_id}">Перейти к сообщению</a>', parse_mode="HTML",
+                                                    f'<a href="https://t.me/c/1398602500/{rmessage_id}">Перейти к сообщению</a>', parse_mode="HTML",
                                                     disable_web_page_preview=True, reply_markup=g.as_markup())
 ###
 
