@@ -624,7 +624,7 @@ async def rep(message:types.Message):
             await message.delete()
             tomsgid = [1758430459, 1042704010, 1132619666,  157398547, 1722862662, 1329032674]
             for i in tomsgid:
-                await bot.send_message(i, f'В чате обнаружено подозрительное <a href="https://t.me/c/2308587530/{rmessage_id}">сообщение</a>!\n \n \n \n'
+                await bot.send_message(i, f'В чате обнаружено подозрительное <a href="https://t.me/c/1398602500/{rmessage_id}">сообщение</a>!\n \n \n \n'
                                                     f'{opnm} @{opun} пожаловался на {nnm} @{nun}\n \n \n \nТекст сообщения: {tm} \n'
                                                     f'<a href="https://t.me/c/2308587530/{rmessage_id}">Перейти к сообщению</a>', parse_mode="HTML",
                                                     disable_web_page_preview=True, reply_markup=g.as_markup())
@@ -786,7 +786,7 @@ async def handle_entity_links(message: types.Message):
 @dp.message(F.text)
 async def bw(message: types.Message):
     if on == 1:
-        if message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001372687943:
+        if message.from_user.id == 777000:
             await message.reply("В комментариях действуют следующие правила:\n" + tt)
             return
         chat_id = message.chat.id
