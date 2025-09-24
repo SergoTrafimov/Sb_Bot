@@ -1,5 +1,5 @@
-sb.sameband.studio
-sameband.studio
+*sb.sameband.studio
+*sameband.studio
 *t.me/APhoenixVoice
 https://boosty.to/aphoenixvoice/donate
 https://boosty.to/aphoenixvoice/*
