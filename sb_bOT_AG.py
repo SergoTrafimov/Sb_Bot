@@ -5,7 +5,7 @@ import fnmatch
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command, ChatMemberUpdatedFilter, IS_NOT_MEMBER, IS_MEMBER
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
-from aiogram.types import ChatPermissions, ChatMemberUpdated
+from aiogram.types import ChatPermissions, ChatMemberUpdated, ContentType
 from aiogram.enums import ChatMemberStatus
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -783,7 +783,15 @@ async def handle_entity_links(message: types.Message):
                     await message.reply("Не удалось выдать предупреждение пользователю.")
 
 
-@dp.message(F.text)
+@dp.message(F.content_type.in_([
+    ContentType.TEXT,
+    ContentType.PHOTO,
+    ContentType.VIDEO,
+    ContentType.AUDIO,
+    ContentType.VOICE,
+    ContentType.VIDEO_NOTE,
+    ContentType.DOCUMENT
+]))
 async def bw(message: types.Message):
     if on == 1:
         if message.from_user.id == 777000:
@@ -799,7 +807,8 @@ async def bw(message: types.Message):
                 channel_id = message.sender_chat.id
                 channel_title = message.sender_chat.title
 
-                # Проверяем, разрешен ли канал
+                # Проверяем, разрешен ли каналwarn
+
                 if channel_id not in ALLOWED_CHANNELS:
                     try:
                         # Баним канал (ограничиваем отправку сообщений)
