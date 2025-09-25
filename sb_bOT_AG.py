@@ -783,6 +783,9 @@ async def handle_entity_links(message: types.Message):
                     await message.reply("Не удалось выдать предупреждение пользователю.")
 
 
+processed_groups = set()
+
+
 @dp.message(F.content_type.in_([
     ContentType.TEXT,
     ContentType.PHOTO,
@@ -795,11 +798,19 @@ async def handle_entity_links(message: types.Message):
 async def bw(message: types.Message):
     if on == 1:
         if message.from_user.id == 777000:
-            await message.reply("В комментариях действуют следующие правила:\n" + tt)
+            # Для групп медиа проверяем, не обрабатывали ли мы уже эту группу
+            if message.media_group_id:
+                if message.media_group_id not in processed_groups:
+                    processed_groups.add(message.media_group_id)
+                    await message.reply("В комментариях действуют следующие правила:\n" + tt)
+            else:
+                # Одиночное сообщение
+                await message.reply("В комментариях действуют следующие правила:\n" + tt)
+
             return
+
         chat_id = message.chat.id
         user_id = message.from_user.id
-
         # Проверяем права администратора
         if await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id in ALLOWED_CHANNELS):
             return
