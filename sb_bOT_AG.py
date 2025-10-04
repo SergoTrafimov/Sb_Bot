@@ -379,7 +379,6 @@ async def warn_user(message: types.Message):
                     cursor.execute("INSERT OR IGNORE INTO warnlist (uid, warning) VALUES (?, ?)", (user_to_warn, wn))
                     db.commit()
                 if wn == 0:
-                    await bot.ban_chat_member(chat_id, user_to_warn)
                     await message.reply(
                         f"У пользователя {up} нет предупреждений")
                     await message.delete()
