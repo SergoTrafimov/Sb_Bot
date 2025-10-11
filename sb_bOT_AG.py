@@ -725,7 +725,8 @@ async def handle_entity_links(message: types.Message):
         extracted_links = []
         for entity in message.entities or []:
             if entity.type == "url":
-                link = message.text[entity.offset:entity.offset + entity.length]
+                link = message.text[entity.offset:entity.offset + entity.length].lower()
+                print(link)
                 extracted_links.append(link)
             elif entity.type == "text_link":
                 extracted_links.append(entity.url)
