@@ -726,7 +726,6 @@ async def handle_entity_links(message: types.Message):
         for entity in message.entities or []:
             if entity.type == "url":
                 link = message.text[entity.offset:entity.offset + entity.length].lower()
-                print(link)
                 extracted_links.append(link)
             elif entity.type == "text_link":
                 extracted_links.append(entity.url)
@@ -739,6 +738,7 @@ async def handle_entity_links(message: types.Message):
             for mask in wlu:
                 if fnmatch.fnmatch(link, mask):
                     link_allowed = True
+                    print(link)
                     break
 
             if not link_allowed:
