@@ -374,6 +374,8 @@ async def warn_user(message: types.Message):
                         wn = wn[0] - 1
                         cursor.execute("UPDATE warnlist SET warning= " + str(wn) + " where uid=" + str(user_to_warn))
                         db.commit()
+                        await message.reply(
+                            f"С пользователя @{up} снято одно предупреждение ({wn}/3). \nAдминистратор: @{ap}")
                     elif wn == 0:
                         await message.reply(
                         f"У пользователя {up} нет предупреждений")
@@ -381,8 +383,6 @@ async def warn_user(message: types.Message):
                     wn = 0
                     cursor.execute("INSERT OR IGNORE INTO warnlist (uid, warning) VALUES (?, ?)", (user_to_warn, wn))
                     db.commit()
-
-                await message.reply(f"С пользователя @{up} снято одно предупреждение ({wn}/3). \nAдминистратор: @{ap}")
                 await message.delete()
             except Exception as e:
                 await message.reply("Не удалось выполнить команду.")
