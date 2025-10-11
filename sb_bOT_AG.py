@@ -738,7 +738,6 @@ async def handle_entity_links(message: types.Message):
             for mask in wlu:
                 if fnmatch.fnmatch(link, mask):
                     link_allowed = True
-                    print(link)
                     break
 
             if not link_allowed:
@@ -748,6 +747,7 @@ async def handle_entity_links(message: types.Message):
         if has_forbidden_links:
             chat_id = message.chat.id
             user_id = message.from_user.id
+            print(link)
 
             if not await is_user_admin(chat_id, user_id):
                 try:
