@@ -376,7 +376,7 @@ async def warn_user(message: types.Message):
                         db.commit()
                         await message.reply(
                             f"С пользователя @{up} снято одно предупреждение ({wn}/3). \nAдминистратор: @{ap}")
-                    elif wn == 0:
+                    elif wn[0] == 0:
                         await message.reply(
                         f"У пользователя {up} нет предупреждений")
                 except TypeError:
