@@ -370,10 +370,10 @@ async def warn_user(message: types.Message):
                     cursor.execute("SELECT warning FROM warnlist WHERE uid=" + str(user_to_warn))
                     wn = cursor.fetchone()
 
-                    if wn>0:
+                    if wn[0]>0:
+                        wn = wn[0] - 1
                         cursor.execute("UPDATE warnlist SET warning= " + str(wn) + " where uid=" + str(user_to_warn))
                         db.commit()
-                        wn = wn[0] - 1
                 except TypeError:
                     wn = 0
                     cursor.execute("INSERT OR IGNORE INTO warnlist (uid, warning) VALUES (?, ?)", (user_to_warn, wn))
