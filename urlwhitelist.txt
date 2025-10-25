@@ -2,7 +2,7 @@
 *sameband.studio*
 *t.me/aphoenixvoice*
 https://boosty.to/aphoenixvoice/donate
-https://boosty.to/aphoenixvoice/*
+https://boosty.to/aphoenixvoice*
 boosty.to/aphoenixvoice/donate
 *t.me/studioband*
 *t.me/petros_play*
@@ -38,3 +38,4 @@ boosty.to/aphoenixvoice/donate
 *www.twitch.tv/studioband*
 *t.me/c/1398602500/*
 *twitch.tv/welovegames*
+*youtu.be*
