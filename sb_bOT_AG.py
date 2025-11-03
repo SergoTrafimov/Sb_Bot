@@ -782,89 +782,6 @@ async def handle_captcha_success(user_id: int, chat_id: int):
         # Удаляем пользователя из списка ожидания
         del pending_users[user_id]
 
-@dp.message()
-async def handle_links_in_all_messages(message: types.Message):
-    if on == 1:
-        extracted_links = []
-
-        # Проверяем текст сообщения
-        if message.text and message.entities:
-            for entity in message.entities:
-                if entity.type == "url":
-                    link = message.text[entity.offset:entity.offset + entity.length].lower()
-                    extracted_links.append(link)
-                elif entity.type == "text_link":
-                    extracted_links.append(entity.url.lower())
-
-        # Проверяем подпись к медиафайлам
-        if message.caption and message.caption_entities:
-            for entity in message.caption_entities:
-                if entity.type == "url":
-                    link = message.caption[entity.offset:entity.offset + entity.length].lower()
-                    extracted_links.append(link)
-                elif entity.type == "text_link":
-                    extracted_links.append(entity.url.lower())
-
-        # Если ссылок нет - выходим
-        if not extracted_links:
-            return
-
-        # Убираем дубликаты
-        extracted_links = list(set(extracted_links))
-
-        has_forbidden_links = False
-        for link in extracted_links:
-            link_allowed = False
-
-            for mask in wlu:
-                if fnmatch.fnmatch(link, mask):
-                    link_allowed = True
-                    print(f"Ссылка разрешена: {link} по маске {mask}")
-                    break
-
-            if not link_allowed:
-                has_forbidden_links = True
-                print(f"Запрещенная ссылка: {link}")
-                break
-
-        if has_forbidden_links:
-            chat_id = message.chat.id
-            user_id = message.from_user.id
-
-            if on ==1:
-                try:
-                    up = message.from_user.username or message.from_user.first_name
-                    cursor.execute("SELECT warning FROM warnlist WHERE uid=?", (user_id,))
-                    result = cursor.fetchone()
-
-                    if result:
-                        wn = result[0] + 1
-                        cursor.execute("UPDATE warnlist SET warning=? WHERE uid=?", (wn, user_id))
-                    else:
-                        wn = 1
-                        cursor.execute("INSERT INTO warnlist (uid, warning) VALUES (?, ?)", (user_id, wn))
-
-                    db.commit()
-
-                    if wn >= 3:
-                        await bot.ban_chat_member(chat_id, user_id)
-                        await message.reply(
-                            f"Пользователю @{up} вынесено предупреждение {wn}/3. \n"
-                            f"Ваше сообщение содержит запрещенные ссылки!\n"
-                            f"Достигнут лимит предупреждений. Пользователь забанен"
-                        )
-                    else:
-                        await message.reply(
-                            f"Пользователю @{up} вынесено предупреждение {wn}/3. \n"
-                            f"Ваше сообщение содержит запрещенные ссылки!"
-                        )
-
-                    await message.delete()
-
-                except Exception as e:
-                    print(f"Database error: {e}")
-                    await message.reply("Не удалось выдать предупреждение пользователю.")
-
 
 processed_groups = set()
 
@@ -968,6 +885,85 @@ async def bw(message: types.Message):
                 print(f"Ошибка: {e}")
                 await message.reply("Не удалось выдать предупреждение пользователю.")
 
+        extracted_links = []
+
+        # Проверяем текст сообщения
+        if message.text and message.entities:
+            for entity in message.entities:
+                if entity.type == "url":
+                    link = message.text[entity.offset:entity.offset + entity.length].lower()
+                    extracted_links.append(link)
+                elif entity.type == "text_link":
+                    extracted_links.append(entity.url.lower())
+
+        # Проверяем подпись к медиафайлам
+        if message.caption and message.caption_entities:
+            for entity in message.caption_entities:
+                if entity.type == "url":
+                    link = message.caption[entity.offset:entity.offset + entity.length].lower()
+                    extracted_links.append(link)
+                elif entity.type == "text_link":
+                    extracted_links.append(entity.url.lower())
+
+        # Если ссылок нет - выходим
+        if not extracted_links:
+            return
+
+        # Убираем дубликаты
+        extracted_links = list(set(extracted_links))
+
+        has_forbidden_links = False
+        for link in extracted_links:
+            link_allowed = False
+
+            for mask in wlu:
+                if fnmatch.fnmatch(link, mask):
+                    link_allowed = True
+                    print(f"Ссылка разрешена: {link} по маске {mask}")
+                    break
+
+            if not link_allowed:
+                has_forbidden_links = True
+                print(f"Запрещенная ссылка: {link}")
+                break
+
+        if has_forbidden_links:
+            chat_id = message.chat.id
+            user_id = message.from_user.id
+
+            if on ==1:
+                try:
+                    up = message.from_user.username or message.from_user.first_name
+                    cursor.execute("SELECT warning FROM warnlist WHERE uid=?", (user_id,))
+                    result = cursor.fetchone()
+
+                    if result:
+                        wn = result[0] + 1
+                        cursor.execute("UPDATE warnlist SET warning=? WHERE uid=?", (wn, user_id))
+                    else:
+                        wn = 1
+                        cursor.execute("INSERT INTO warnlist (uid, warning) VALUES (?, ?)", (user_id, wn))
+
+                    db.commit()
+
+                    if wn >= 3:
+                        await bot.ban_chat_member(chat_id, user_id)
+                        await message.reply(
+                            f"Пользователю @{up} вынесено предупреждение {wn}/3. \n"
+                            f"Ваше сообщение содержит запрещенные ссылки!\n"
+                            f"Достигнут лимит предупреждений. Пользователь забанен"
+                        )
+                    else:
+                        await message.reply(
+                            f"Пользователю @{up} вынесено предупреждение {wn}/3. \n"
+                            f"Ваше сообщение содержит запрещенные ссылки!"
+                        )
+
+                    await message.delete()
+
+                except Exception as e:
+                    print(f"Database error: {e}")
+                    await message.reply("Не удалось выдать предупреждение пользователю.")
 
 
 async def main():
