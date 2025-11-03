@@ -737,11 +737,7 @@ async def ban_user_if_no_captcha(user_id: int, chat_id: int):
                 await bot.ban_chat_member(chat_id, user_id)
 
                 # Уведомляем о бане
-                await bot.send_message(
-                    chat_id,
-                    f"🚫 Пользователь был забанен за неактивность.\n"
-                    f"Причина: не прошел проверку за отведенное время."
-                )
+
 
             except Exception as e:
                 print(f"Ошибка бана за неактивность: {e}")
