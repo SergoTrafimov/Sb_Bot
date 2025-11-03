@@ -845,6 +845,8 @@ async def bw(message: types.Message):
         else:
             if message.caption != None:
                 soo = message.caption.split()
+            else:
+                soo = "None"
 
         for word in soo:
             for pattern in banwordlist:
