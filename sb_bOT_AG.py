@@ -782,20 +782,35 @@ async def handle_captcha_success(user_id: int, chat_id: int):
         # Удаляем пользователя из списка ожидания
         del pending_users[user_id]
 
-@dp.message(lambda message: any(
-    entity.type in ["url", "text_link"]
-    for entity in message.entities or []
-))
-async def handle_entity_links(message: types.Message):
+@dp.message()
+async def handle_links_in_all_messages(message: types.Message):
     if on == 1:
         extracted_links = []
-        for entity in message.entities or []:
-            if entity.type == "url":
-                link = message.text[entity.offset:entity.offset + entity.length].lower()
-                extracted_links.append(link)
-            elif entity.type == "text_link":
-                extracted_links.append(entity.url)
 
+        # Проверяем текст сообщения
+        if message.text and message.entities:
+            for entity in message.entities:
+                if entity.type == "url":
+                    link = message.text[entity.offset:entity.offset + entity.length].lower()
+                    extracted_links.append(link)
+                elif entity.type == "text_link":
+                    extracted_links.append(entity.url.lower())
+
+        # Проверяем подпись к медиафайлам
+        if message.caption and message.caption_entities:
+            for entity in message.caption_entities:
+                if entity.type == "url":
+                    link = message.caption[entity.offset:entity.offset + entity.length].lower()
+                    extracted_links.append(link)
+                elif entity.type == "text_link":
+                    extracted_links.append(entity.url.lower())
+
+        # Если ссылок нет - выходим
+        if not extracted_links:
+            return
+
+        # Убираем дубликаты
+        extracted_links = list(set(extracted_links))
 
         has_forbidden_links = False
         for link in extracted_links:
@@ -804,18 +819,19 @@ async def handle_entity_links(message: types.Message):
             for mask in wlu:
                 if fnmatch.fnmatch(link, mask):
                     link_allowed = True
+                    print(f"Ссылка разрешена: {link} по маске {mask}")
                     break
 
             if not link_allowed:
                 has_forbidden_links = True
+                print(f"Запрещенная ссылка: {link}")
                 break
 
         if has_forbidden_links:
             chat_id = message.chat.id
             user_id = message.from_user.id
-            print(link)
 
-            if not await is_user_admin(chat_id, user_id):
+            if on ==1:
                 try:
                     up = message.from_user.username or message.from_user.first_name
                     cursor.execute("SELECT warning FROM warnlist WHERE uid=?", (user_id,))
@@ -906,7 +922,13 @@ async def bw(message: types.Message):
                             pass
         # Проверяем наличие запрещенных слов
         found_bad_word = False
-        soo = message.text.split()
+        if message.text:
+            soo = message.text.split()
+        else:
+            if message.caption == "NoneType":
+                pass
+            else:
+                soo = message.caption.split()
 
         for word in soo:
             for pattern in banwordlist:
