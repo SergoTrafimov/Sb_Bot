@@ -18,7 +18,7 @@ ALLOWED_CHANNELS = [-1001620433786, -1001372687943, -1001536772735, -10016678058
                     -1001654742345, -1001951614079]
 
 ida=[1758430459, 1042704010, 1132619666, 1329032674, 157398547, 1722862662]
-
+pending_users = {}
 TOKEN = "5840636568:AAE5ieurhmd0HW2FY-KTd5cpA4flRnCuhmI"
 TO_CHAT_ID = 1758430459
 get_chat_id = -1002308587530
@@ -254,19 +254,18 @@ async def rep(callback: types.CallbackQuery):
     if callback.data == "sk":
         await bot.delete_message(callback.message.chat.id, callback.message.message_id)
     if callback.data == "cpt":
-        if callback.from_user.id == nuid:
-            chatid = callback.message.chat.id
-            permissions = ChatPermissions(
-                can_send_messages=True,
-                can_send_media_messages=True,
-                can_send_other_messages=True,
-                can_add_web_page_previews=True
-            )
-            await bot.restrict_chat_member(chatid, callback.from_user.id, permissions)
+        user_id = callback.from_user.id
+
+        if user_id in pending_users:
+            chat_id = pending_users[user_id]['chat_id']
+
+            # Подтверждаем нажатие кнопки
             await callback.answer(
                 "Отлично! Вы человек, приятного общения",
-                show_alert=True )
-            await callback.message.edit_reply_markup(reply_markup=None)
+                show_alert=True)
+
+            # Обрабатываем успешное прохождение капчи
+            await handle_captcha_success(user_id, chat_id)
         else:
             await callback.answer(
                 f"⚠️ Внимание!\n\nЭто сообщение для {nuf}",
@@ -694,7 +693,6 @@ async def on_user_joined_html_mention(event: ChatMemberUpdated):
                         return
                     except Exception as e:
                         print(f"Ошибка бана: {e}")
-
                         return
 
         user_mention = f'<a href="tg://user?id={user.id}">{user.full_name}</a>'
@@ -705,7 +703,7 @@ async def on_user_joined_html_mention(event: ChatMemberUpdated):
         permissions = ChatPermissions(can_send_messages=False)
         await bot.restrict_chat_member(chat.id, user.id, permissions)
 
-        await bot.send_message(
+        captcha_message = await bot.send_message(
             chat.id,
             welcome_text,
             parse_mode="HTML",
@@ -713,7 +711,80 @@ async def on_user_joined_html_mention(event: ChatMemberUpdated):
             reply_markup=captcha.as_markup()
         )
 
+        # Добавляем пользователя в список ожидания
+        pending_users[user.id] = {
+            'chat_id': chat.id,
+            'join_time': asyncio.get_event_loop().time(),
+            'captcha_message_id': captcha_message.message_id
+        }
 
+        # Запускаем таймер на бан через 60 секунд
+        asyncio.create_task(ban_user_if_no_captcha(user.id, chat.id))
+
+
+async def ban_user_if_no_captcha(user_id: int, chat_id: int):
+    """Банит пользователя если он не прошел капчу за 60 секунд"""
+    try:
+        # Ждем 60 секунд
+        await asyncio.sleep(60)
+
+        # Проверяем, все еще ли пользователь в ожидании
+        if user_id in pending_users:
+            print(f"Пользователь {user_id} не прошел капчу вовремя - бан")
+
+            try:
+                # Баним пользователя
+                await bot.ban_chat_member(chat_id, user_id)
+
+                # Уведомляем о бане
+                await bot.send_message(
+                    chat_id,
+                    f"🚫 Пользователь был забанен за неактивность.\n"
+                    f"Причина: не прошел проверку за отведенное время."
+                )
+
+            except Exception as e:
+                print(f"Ошибка бана за неактивность: {e}")
+
+            # Удаляем пользователя из списка ожидания
+            if user_id in pending_users:
+                # Пытаемся удалить сообщение с капчей
+                try:
+                    captcha_message_id = pending_users[user_id]['captcha_message_id']
+                    await bot.delete_message(chat_id, captcha_message_id)
+                except:
+                    pass
+
+                del pending_users[user_id]
+
+    except asyncio.CancelledError:
+        # Таймер был отменен (пользователь прошел капчу)
+        pass
+
+async def handle_captcha_success(user_id: int, chat_id: int):
+    """Обрабатывает успешное прохождение капчи"""
+    if user_id in pending_users:
+        # Восстанавливаем права пользователя
+        permissions = ChatPermissions(
+            can_send_messages=True,
+            can_send_media_messages=True,
+            can_send_other_messages=True,
+            can_add_web_page_previews=True
+        )
+
+        try:
+            await bot.restrict_chat_member(chat_id, user_id, permissions)
+
+            # Удаляем сообщение с капчей
+            captcha_message_id = pending_users[user_id]['captcha_message_id']
+            await bot.delete_message(chat_id, captcha_message_id)
+
+
+        except Exception as e:
+            print(f"Ошибка восстановления прав: {e}")
+
+        # Удаляем пользователя из списка ожидания
+        del pending_users[user_id]
 
 @dp.message(lambda message: any(
     entity.type in ["url", "text_link"]
@@ -894,3 +965,4 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
+    
