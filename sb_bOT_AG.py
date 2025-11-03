@@ -796,6 +796,7 @@ processed_groups = set()
     ContentType.DOCUMENT
 ]))
 async def bw(message: types.Message):
+    global soo
     if on == 1:
         if message.from_user.id == 777000:
             # Для групп медиа проверяем, не обрабатывали ли мы уже эту группу
