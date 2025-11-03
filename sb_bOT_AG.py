@@ -879,6 +879,7 @@ processed_groups = set()
     ContentType.DOCUMENT
 ]))
 async def bw(message: types.Message):
+    global soo
     if on == 1:
         if message.from_user.id == 777000:
             # Для групп медиа проверяем, не обрабатывали ли мы уже эту группу
@@ -925,11 +926,11 @@ async def bw(message: types.Message):
         if message.text:
             soo = message.text.split()
         else:
-            if message.caption == "NoneType":
+            if message.caption == None:
                 pass
             else:
+                print(message.caption)
                 soo = message.caption.split()
-
         for word in soo:
             for pattern in banwordlist:
                 if fnmatch.fnmatch(word.lower(), pattern):  # Проверяем в нижнем регистре
