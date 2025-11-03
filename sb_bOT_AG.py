@@ -839,7 +839,11 @@ async def bw(message: types.Message):
                             pass
         # Проверяем наличие запрещенных слов
         found_bad_word = False
-        soo = message.text.split()
+        if message.text:
+            soo = message.text.split()
+        else:
+            if message.caption != None:
+                soo = message.caption.split()
 
         for word in soo:
             for pattern in banwordlist:
