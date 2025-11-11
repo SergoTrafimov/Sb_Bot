@@ -2,6 +2,7 @@ import asyncio
 import time
 import sqlite3
 import fnmatch
+import string
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command, ChatMemberUpdatedFilter, IS_NOT_MEMBER, IS_MEMBER
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
@@ -10,6 +11,7 @@ from aiogram.enums import ChatMemberStatus
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from uidtsb import get_user_simple
+from aiogram.utils.markdown import hlink
 
 ALLOWED_CHANNELS = [-1001620433786, -1001372687943, -1001536772735, -1001667805833,
                     -1002345911986, -1001768096856, -1001640821962, -1001564386161,
@@ -22,6 +24,8 @@ pending_users = {}
 TOKEN = "5840636568:AAE5ieurhmd0HW2FY-KTd5cpA4flRnCuhmI"
 TO_CHAT_ID = 1758430459
 get_chat_id = -1002308587530
+
+kbuc = 0
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -87,6 +91,12 @@ for i in l:
     bwp.append(i.replace('\n', '', 1))
 l.close()
 
+fr = open('banfrase.txt', 'r', encoding='utf-8')
+bf = []
+for i in fr:
+    bf.append((i.replace('\n', '', 1)))
+fr.close()
+
 g = InlineKeyboardBuilder()
 g.add(InlineKeyboardButton(text="Запретить писать нарушителю 1 час", callback_data="mn"))
 g.add(InlineKeyboardButton(text="❗️Запретить писать отправителю 1 час", callback_data="mo"))
@@ -101,6 +111,16 @@ captcha.add(InlineKeyboardButton(text='Пройти проверку', callback_
 
 on = 1
 
+def escape_markdown(text: str) -> str:
+    """Экранирует специальные символы для MarkdownV2"""
+    escape_chars = r'_*[]()~`>#+-=|{}.!'
+    return ''.join(f'\\{char}' if char in escape_chars else char for char in text)
+
+def remove_punctuation(text: str) -> str:
+    """Удаляет все знаки препинания из текста"""
+    # Создаем таблицу перевода для удаления знаков препинания
+    translator = str.maketrans('', '', string.punctuation)
+    return text.translate(translator)
 @dp.message(Command('off'))
 async def vkl(message: types.Message):
     global on
@@ -723,6 +743,7 @@ async def on_user_joined_html_mention(event: ChatMemberUpdated):
 
 
 async def ban_user_if_no_captcha(user_id: int, chat_id: int):
+    global kbuc
     """Банит пользователя если он не прошел капчу за 60 секунд"""
     try:
         # Ждем 60 секунд
@@ -730,8 +751,8 @@ async def ban_user_if_no_captcha(user_id: int, chat_id: int):
 
         # Проверяем, все еще ли пользователь в ожидании
         if user_id in pending_users:
-            print(f"Пользователь {user_id} не прошел капчу вовремя - бан")
-
+            kbuc +=1
+            print(f'Количество забаненных пользователь с момента последнего перезапуска: {kbuc}')
             try:
                 # Баним пользователя
                 await bot.ban_chat_member(chat_id, user_id)
@@ -796,7 +817,7 @@ processed_groups = set()
     ContentType.DOCUMENT
 ]))
 async def bw(message: types.Message):
-    global soo
+    global soo, kbuc
     if on == 1:
         if message.from_user.id == 777000:
             # Для групп медиа проверяем, не обрабатывали ли мы уже эту группу
@@ -841,10 +862,12 @@ async def bw(message: types.Message):
         # Проверяем наличие запрещенных слов
         found_bad_word = False
         if message.text:
-            soo = message.text.split()
+            clean_text = remove_punctuation(message.text)
+            soo = clean_text.split()
         else:
             if message.caption != None:
-                soo = message.caption.split()
+                clean_text = remove_punctuation(message.caption)
+                soo = clean_text.split()
             else:
                 soo = "None"
 
@@ -891,6 +914,26 @@ async def bw(message: types.Message):
             except Exception as e:
                 print(f"Ошибка: {e}")
                 await message.reply("Не удалось выдать предупреждение пользователю.")
+
+        if found_bad_word == False:
+            for i in range(len(soo) - 3):
+                frase = f'{soo[i]}{soo[i + 1]}{soo[i + 2]}{soo[i + 3]}'
+                for fr in bf:
+                    if fnmatch.fnmatch(frase.lower(), fr):  # Проверяем в нижнем регистре
+                        found_bad_word = True
+                        break  # Прерываем внутренний цикл
+                    if found_bad_word:
+                        break  # Прерываем внешний цикл
+
+        if found_bad_word and not (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001628633023):
+                await bot.ban_chat_member(message.chat.id, message.from_user.id)
+                kbuc+=1
+                print(f'Количество забаненных пользователь с момента последнего перезапуска: {kbuc}')
+                await message.delete()
+
+
+
+
 
         extracted_links = []
 
