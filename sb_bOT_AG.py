@@ -860,7 +860,7 @@ async def bw(message: types.Message):
                         except:
                             pass
         # Проверяем наличие запрещенных слов
-        found_bad_word = False
+        found_ban_word = False
         if message.text:
             clean_text = remove_punctuation(message.text)
             soo = clean_text.split()
@@ -874,12 +874,12 @@ async def bw(message: types.Message):
         for word in soo:
             for pattern in banwordlist:
                 if fnmatch.fnmatch(word.lower(), pattern):  # Проверяем в нижнем регистре
-                    found_bad_word = True
+                    found_ban_word = True
                     break  # Прерываем внутренний цикл
-            if found_bad_word:
+            if found_ban_word:
                 break  # Прерываем внешний цикл
 
-        if found_bad_word and not (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001628633023):
+        if found_ban_word and not (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001628633023):
             try:
                 up = message.from_user.username or message.from_user.first_name
 
@@ -915,7 +915,7 @@ async def bw(message: types.Message):
                 print(f"Ошибка: {e}")
                 await message.reply("Не удалось выдать предупреждение пользователю.")
 
-        if found_bad_word == False:
+        if found_ban_word == False:
             for i in range(len(soo) - 3):
                 frase = f'{soo[i]}{soo[i + 1]}{soo[i + 2]}{soo[i + 3]}'
                 for fr in bf:
