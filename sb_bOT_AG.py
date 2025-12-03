@@ -916,6 +916,7 @@ async def bw(message: types.Message):
                 await message.reply("Не удалось выдать предупреждение пользователю.")
 
         if found_ban_word == False:
+            found_bad_word = False
             for i in range(len(soo) - 3):
                 frase = f'{soo[i]}{soo[i + 1]}{soo[i + 2]}{soo[i + 3]}'
                 for fr in bf:
