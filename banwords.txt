@@ -1231,7 +1231,7 @@ tvshows
 кончить
 новки
 @beastudios
-digital
+digital*
 *хуекко*
 
 
