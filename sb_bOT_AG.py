@@ -679,7 +679,7 @@ async def rep(message:types.Message):
 
 @dp.message(Command('update'))
 async def update(message:types.Message):
-    texts = message.text.split()
+    texts = message.text.split(maxsplit=1)
     text = texts[1]
     for i in ida:
         await bot.send_message(i, f'Обновление функционала: \n Что нового? \n {text}')
