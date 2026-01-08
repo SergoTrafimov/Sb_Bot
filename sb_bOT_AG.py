@@ -11,19 +11,11 @@ from aiogram.enums import ChatMemberStatus
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from uidtsb import get_user_simple
+from constant import TOKEN, TO_CHAT_ID, ALLOWED_CHANNELS, ida, helpt, get_chat_id, tt
+import re
 from aiogram.utils.markdown import hlink
 
-ALLOWED_CHANNELS = [-1001620433786, -1001372687943, -1001536772735, -1001667805833,
-                    -1002345911986, -1001768096856, -1001640821962, -1001564386161,
-                    -1001925689412, -1001682049112, -1001360911185, -1001683532449,
-                    -1001628633023, -1001663074595, -1001573970133, -1001637258570,
-                    -1001654742345, -1001951614079]
-
-ida=[1758430459, 1042704010, 1132619666, 1329032674, 157398547, 1722862662]
 pending_users = {}
-TOKEN = "5840636568:AAE5ieurhmd0HW2FY-KTd5cpA4flRnCuhmI"
-TO_CHAT_ID = 1758430459
-get_chat_id = -1002308587530
 
 kbuc = 0
 
@@ -32,47 +24,7 @@ dp = Dispatcher()
 db = sqlite3.connect('sb.db')
 cursor = db.cursor()
 
-helpt = ('Функционал:\n'
-        '/warn - выдает предупреждение пользователю, при достижении 3 предупреждений пользователь будет заблокирован. Работает как ответом на сообщение, так и через "собачку".'
-        'Необходимо указать причину\n\n'
-        '/unwarn - снимает с пользователя одно предупреждение, аналогично работает и по ответу, и по упоминанию.\n\n'
-        '/ban - блокирует пользователя в чате. Работает по ответу на сообщение или по упоминанию.\n\n'
-        '/unban - убирает пользователя из черного списка.\n\n'
-        '/mute - накладывает на пользователя запрет на отправку сообщений. Синтаксис следующий:\n\n'
-        '/mute @Vvvvvvvvv222221 1 d/h/m\n'
-        'Можно использовать и через ответ на сообщение, тогда упоминание не нужно писать. Если не указать время то пользователь будет ограничен навсегда.\n\n'
-        '/unmute - возвращает пользователю право отправлять сообщения. Работает по ответу или через «собачку».\n\n'
-        '/rules - отправляет в чат сообщение с правилами.\n\n'
-        '/report - отправляет в личные сообщения адептам сообщение о жалобе и само сообщение, на которое пожаловались.\n\n'
-        '/debag - отправляет создателю сообщение об ошибке, если таковая есть.\n\n'
-        '/chatoff - выключает чат.\n\n'
-        '/chaton - включает чат.\n\n'
-        '/off - команда для отключения бота.\n\n'
-        '/on - команда для включения бота.\n\n'
-        '/help - показать это сообщение(только в личке с ботом\n\n'
-        '/ping - команда для проверки пингования.\n\n\n\n'
-        'Автоматически удаляет команды от тех пользователей, которые не являются администраторами, а также сразу удаляет команды (через /) от сами админов одновременно с выполнением команды.\n'
-        'Не требует списка администраторов - реагирует на команды от тех, кто имеет «звание» (он же префикс).\n\n'
-        'Умеет банить те ссылки, которых нет в «белом списке».\n\n'
-        'Имеет «белый список», включающий в себя каналы, от лица которых пишут Бандиты, и ссылки с ресурсами.\n\n'
-        'Так же в бота встроена функции отправки правил под новые посты в тг канале.\n\n'
-        'Фильтр мата\n\n'
-        'Фильтр ссылок\n\n'
-        'Приветствие новых пользователей\n\n')
 
-
-tt = (
-    "1) будь вежлив к другим участникам и не нарушай атмосферу чата; \n2) реклама чего угодно (ссылки) запрещена;\n"
-    "3) спам, политика, религия, агрессия не приветствуются;\n"
-    "4) мат запрещён! бот не пощадит;\n"
-    "5) отправляйте не более двух стикеров подряд;\n"
-    "6) будьте котиками;\n"
-    "7) за контент сексуального характера или же который может быть неприятным для участников чата, а так же за спойлеры выдаётся предупреждение.\n"
-    "Чтобы не получать их за спойлеры лучше использовать функцию скрытия сообщения (в начале и в конце предложения ставить ||).\n"
-    "8) Этот чат - свободная зона от Геншина/Бравл Старса.\n"
-    "9) Смотрите аниме где угодно, но в чат не кидайте ссылки/названия сторонних проектов.\n"
-    "10) Не кидайте свои озвучки. Ждите конкурсы.\n"
-    "11) Язык чата - русский")
 
 
 file = open('banwords.txt', 'r', encoding='utf-8')
@@ -336,6 +288,8 @@ async def warn_user(message: types.Message):
                     if up[0] == '@':
                         up = up.replace('@', '', 1)
                         user_to_warn = await get_user_simple(up)
+                    elif int(up):
+                        user_to_warn = up
                 else:
                     t = message.text.split( maxsplit=1)
                     pr = t[1]
@@ -381,6 +335,8 @@ async def warn_user(message: types.Message):
                     if up[0] == '@':
                         up = up.replace('@', '', 1)
                         user_to_warn = await get_user_simple(up)
+                    elif int(up):
+                        user_to_warn = up
                 else:
                     t = message.text.split( maxsplit=1)
                     user_to_warn = message.reply_to_message.from_user.id
@@ -435,6 +391,8 @@ async def ban_user(message: types.Message):
                         if up[0] == '@':
                             up = up.replace('@', '', 1)
                             user_to_ban = await get_user_simple(up)
+                        elif int(up):
+                            user_to_ban = up
                     else:
                         user_to_ban = message.reply_to_message.from_user.id
                     await bot.ban_chat_member(chat_id, user_to_ban)
@@ -469,6 +427,8 @@ async def unban_user(message: types.Message):
                     if up[0] == '@':
                         up = up.replace('@', '', 1)
                         user_to_ban = await get_user_simple(up)
+                    elif int(up):
+                        user_to_ban = up
                 else:
                     user_to_ban = message.reply_to_message.from_user.id
                 await bot.unban_chat_member(chat_id, user_to_ban)
@@ -487,82 +447,142 @@ async def mute_user(message: types.Message):
         chat_id = message.chat.id
         user_id = message.from_user.id
 
-        if not (await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079)):
+        if not (await is_user_admin(chat_id, user_id) or
+                (message.sender_chat and message.sender_chat.type == "channel" and
+                 message.sender_chat.id == -1001951614079)):
             await message.delete()
             return
 
         try:
+            # Получаем ID пользователя для мута
             if not message.reply_to_message:
                 t = message.text.split()
                 if len(t) > 1:
                     up = t[1]
-                    if up[0] == '@':
+                    # Проверяем, является ли аргумент числовым ID
+                    if up.isdigit():
+                        user_to_mute = int(up)
+                    elif up[0] == '@':
                         up = up.replace('@', '', 1)
                         user_to_mute = await get_user_simple(up)
                     else:
-                        await message.reply("Укажите @username пользователя.")
-                        await message.delete()
-                        return
+                        # Пробуем преобразовать в число (на случай если это число без @)
+                        try:
+                            user_to_mute = int(up)
+                        except ValueError:
+                            await message.reply("Укажите @username пользователя или цифровой ID.")
+                            await message.delete()
+                            return
                 else:
-                    await message.reply("Ответьте на сообщение пользователя или укажите @username.")
+                    await message.reply("Ответьте на сообщение пользователя или укажите @username/ID.")
                     await message.delete()
                     return
             else:
                 user_to_mute = message.reply_to_message.from_user.id
+
+            # Проверяем, не является ли пользователь администратором
             target_status = (await bot.get_chat_member(chat_id, user_to_mute)).status
             if target_status in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.CREATOR]:
                 await message.reply("Невозможно замутить администратора.")
                 await message.delete()
                 return
 
-            duration = 100000000000000000
+            # Парсим аргументы для времени
             args = message.text.split()
-            time_index = None
-            for i, arg in enumerate(args):
-                if arg.isdigit() and i > 0:
+            duration = 100000000000000000  # Значение для вечного мута
+            time_unit = 'min'  # По умолчанию минуты
+
+            # Определяем индекс аргумента с временем
+            time_arg_index = 2 if not message.reply_to_message else 1
+
+            if len(args) > time_arg_index:
+                time_arg = args[time_arg_index]
+
+                # Регулярное выражение для поиска числа и единицы времени
+                # Поддерживает: 10мин, 10мин, 5h, 3hour, 2d, 7day и т.д.
+                pattern = r'^(\d+)(min|m|мин|минут|h|hour|ч|час|часов|d|day|д|день|дней)?$'
+                match = re.match(pattern, time_arg.lower())
+
+                if match:
+                    duration = int(match.group(1))
+                    if match.group(2):  # Если единица времени указана в том же аргументе
+                        unit = match.group(2)
+                        if unit in ['min', 'm', 'мин', 'минут']:
+                            time_unit = 'min'
+                        elif unit in ['h', 'hour', 'ч', 'час', 'часов']:
+                            time_unit = 'h'
+                        elif unit in ['d', 'day', 'д', 'день', 'дней']:
+                            time_unit = 'd'
+                    elif len(args) > time_arg_index + 1:  # Если единица времени отдельным аргументом
+                        next_arg = args[time_arg_index + 1].lower()
+                        if next_arg in ['min', 'm', 'мин', 'минут']:
+                            time_unit = 'min'
+                        elif next_arg in ['h', 'hour', 'ч', 'час', 'часов']:
+                            time_unit = 'h'
+                        elif next_arg in ['d', 'day', 'д', 'день', 'дней']:
+                            time_unit = 'd'
+                else:
+                    # Если не удалось распарсить, пробуем как число
                     try:
-                        duration = int(arg)
-                        time_index = i
-                        break
+                        duration = int(time_arg)
+                        if len(args) > time_arg_index + 1:
+                            next_arg = args[time_arg_index + 1].lower()
+                            if next_arg in ['min', 'm', 'мин', 'минут']:
+                                time_unit = 'min'
+                            elif next_arg in ['h', 'hour', 'ч', 'час', 'часов']:
+                                time_unit = 'h'
+                            elif next_arg in ['d', 'day', 'д', 'день', 'дней']:
+                                time_unit = 'd'
                     except ValueError:
-                        pass
-
-
-            time_unit = 'min'
-            if time_index and time_index + 1 < len(args):
-                next_arg = args[time_index + 1].lower()
-                if next_arg in ['min', 'm', 'мин', 'минут']:
-                    time_unit = 'min'
-                elif next_arg in ['h', 'hour', 'ч', 'час', 'часов']:
-                    time_unit = 'h'
-                elif next_arg in ['d', 'day', 'д', 'день', 'дней']:
-                    time_unit = 'd'
+                        pass  # Оставляем вечный мут
 
             # Вычисляем время мута
-            if time_unit == 'min':
-                until_date = time.time() + duration * 60
-                time_text = f"{duration} минут"
-            elif time_unit == 'h':
-                until_date = time.time() + duration * 3600
-                time_text = f"{duration} часов"
-            elif time_unit == 'd':
-                until_date = time.time() + duration * 86400
-                time_text = f"{duration} дней"
+            if duration == 100000000000000000:
+                until_date = None  # Навсегда
+                time_text = "навсегда"
             else:
-                until_date = time.time() + duration * 60
-                time_text = f"{duration} минут"
+                if time_unit == 'min':
+                    until_date = time.time() + duration * 60
+                    time_text = f"{duration} минут"
+                elif time_unit == 'h':
+                    until_date = time.time() + duration * 3600
+                    time_text = f"{duration} часов"
+                elif time_unit == 'd':
+                    until_date = time.time() + duration * 86400
+                    time_text = f"{duration} дней"
+                else:
+                    until_date = time.time() + duration * 60
+                    time_text = f"{duration} минут"
 
-            permissions = ChatPermissions(can_send_messages=False)
-            await bot.restrict_chat_member(chat_id, user_to_mute, permissions, until_date=until_date)
+            # Применяем мут
+            permissions = ChatPermissions(
+                can_send_messages=False,
+                can_send_media_messages=False,
+                can_send_polls=False,
+                can_send_other_messages=False,
+                can_add_web_page_previews=False,
+                can_change_info=False,
+                can_invite_users=False,
+                can_pin_messages=False
+            )
 
+            if until_date:
+                await bot.restrict_chat_member(chat_id, user_to_mute, permissions, until_date=until_date)
+            else:
+                await bot.restrict_chat_member(chat_id, user_to_mute, permissions)
+
+            # Формируем ответ
             target_user = await bot.get_chat_member(chat_id, user_to_mute)
-            user_name = f" @{target_user.user.username}"
-            if duration==100000000000000000:
-                await message.reply(f"Пользователь {user_name} замучен навсегда.")
+            user_name = f"@{target_user.user.username}"
+            if duration == 100000000000000000:
+                await message.reply(f"Пользователь {user_name} ({target_user.user.id}) замучен навсегда.")
                 await message.delete()
             else:
-                await message.reply(f"Пользователь {user_name} замучен на {time_text}.")
+                await message.reply(f"Пользователь {user_name} ({target_user.user.id}) замучен на {time_text}.")
                 await message.delete()
+
+            await message.delete()
+
         except Exception as e:
             print(f"Mute error: {e}")
             await message.reply("Не удалось замутить пользователя.")
@@ -587,12 +607,14 @@ async def unmute_user(message: types.Message):
                     if up[0] == '@':
                         up = up.replace('@', '', 1)
                         user_to_unmute = await get_user_simple(up)
+                    elif int(up):
+                        user_to_unmute = up
                     else:
-                        await message.reply("Укажите @username пользователя.")
+                        await message.reply("Укажите @username или id пользователя.")
                         await message.delete()
                         return
                 else:
-                    await message.reply("Ответьте на сообщение пользователя или укажите @username.")
+                    await message.reply("Ответьте на сообщение пользователя или укажите @username (или id).")
                     await message.delete()
                     return
             else:
@@ -610,13 +632,11 @@ async def unmute_user(message: types.Message):
 
             # Получаем информацию о пользователе для ответа
             target_user = await bot.get_chat_member(chat_id, user_to_unmute)
-            user_name = target_user.user.first_name
-            if target_user.user.last_name:
-                user_name += f" {target_user.user.last_name}"
             if target_user.user.username:
-                user_name += f" (@{target_user.user.username})"
+                user_name = f" (@{target_user.user.username})"
+            else: user_name = target_user.user.first_name
 
-            await message.reply(f"Пользователь {user_name} размучен.")
+            await message.reply(f"Пользователь {user_name} {target_user.user.id} размучен.")
             await message.delete()
         except Exception as e:
             print(f"Unmute error: {e}")
@@ -638,25 +658,31 @@ async def rep(message:types.Message):
             nnm = message.reply_to_message.from_user.full_name
             nun = message.reply_to_message.from_user.username
             tm = message.reply_to_message.text
+            kom = message.text.split(maxsplit=1)
+            if len(kom)==2:
+                komment = kom[1]
+            else:
+                komment = "Комментарий не дан"
             await message.reply('Спасибо за жалобу на сообщение! Отправлено уведомление админам')
             await message.delete()
             tomsgid = [1758430459, 1042704010, 1132619666,  157398547, 1722862662, 1329032674]
             for i in tomsgid:
                 await bot.send_message(i, f'В чате обнаружено подозрительное <a href="https://t.me/c/1398602500/{rmessage_id}">сообщение</a>!\n \n \n \n'
-                                                    f'{opnm} @{opun} пожаловался на {nnm} @{nun}\n \n \n \nТекст сообщения: {tm} \n'
+                                                    f'{opnm} @{opun} пожаловался на {nnm} @{nun}\n \n \n \nТекст сообщения: {tm} \n \n'
+                                                    f'Комментарий сообщившего: {komment} \n \n'
                                                     f'<a href="https://t.me/c/1398602500/{rmessage_id}">Перейти к сообщению</a>', parse_mode="HTML",
                                                     disable_web_page_preview=True, reply_markup=g.as_markup())
-###
 
-
-        ###
-
-        #
         else:
             await message.reply('Используй это в ответ на сообщение')
             await message.delete()
 
-
+@dp.message(Command('update'))
+async def update(message:types.Message):
+    texts = message.text.split()
+    text = texts[1]
+    for i in ida:
+        await bot.send_message(i, f'Обновление функционала: \n Что нового? \n {text}')
 
 @dp.message(Command('debug'))
 async def debug_command(message: types.Message, state: FSMContext):
@@ -715,13 +741,80 @@ async def on_user_joined_html_mention(event: ChatMemberUpdated):
                         print(f"Ошибка бана: {e}")
                         return
 
+        # Получаем текущие права пользователя (могут уже быть ограничения)
+        try:
+            chat_member = await bot.get_chat_member(chat.id, user.id)
+            original_permissions = None
+
+            # Проверяем тип пользователя для получения прав
+            if chat_member.status == ChatMemberStatus.RESTRICTED:
+                # Для ограниченного пользователя (в муте) используем соответствующие поля
+                original_permissions = {
+                    'can_send_messages': chat_member.can_send_messages,
+                    'can_send_media_messages': chat_member.can_send_media_messages,
+                    'can_send_polls': chat_member.can_send_polls,
+                    'can_send_other_messages': chat_member.can_send_other_messages,
+                    'can_add_web_page_previews': chat_member.can_add_web_page_previews,
+                    'can_change_info': chat_member.can_change_info,
+                    'can_invite_users': chat_member.can_invite_users,
+                    'can_pin_messages': chat_member.can_pin_messages,
+                    'until_date': chat_member.until_date  # Сохраняем дату окончания мута, если есть
+                }
+            elif chat_member.status == ChatMemberStatus.MEMBER:
+                # Для обычного участника - полные права
+                original_permissions = {
+                    'can_send_messages': True,
+                    'can_send_media_messages': True,
+                    'can_send_polls': True,
+                    'can_send_other_messages': True,
+                    'can_add_web_page_previews': True,
+                    'can_change_info': False,
+                    'can_invite_users': True,
+                    'can_pin_messages': False,
+                    'until_date': None
+                }
+            # Для администраторов и создателей не применяем капчу
+            elif chat_member.status in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.CREATOR]:
+                return
+
+        except Exception as e:
+            print(f"Ошибка получения прав пользователя: {e}")
+            # В случае ошибки устанавливаем стандартные права
+            original_permissions = {
+                'can_send_messages': True,
+                'can_send_media_messages': True,
+                'can_send_polls': True,
+                'can_send_other_messages': True,
+                'can_add_web_page_previews': True,
+                'can_change_info': False,
+                'can_invite_users': True,
+                'can_pin_messages': False,
+                'until_date': None
+            }
+
+        # Устанавливаем временное ограничение на отправку сообщений для капчи
+        permissions = ChatPermissions(
+            can_send_messages=False,
+            can_send_media_messages=False,
+            can_send_polls=False,
+            can_send_other_messages=False,
+            can_add_web_page_previews=False,
+            can_change_info=False,
+            can_invite_users=False,
+            can_pin_messages=False
+        )
+
+        try:
+            # Применяем ограничение для капчи
+            await bot.restrict_chat_member(chat.id, user.id, permissions)
+        except Exception as e:
+            print(f"Ошибка ограничения пользователя: {e}")
+            return
+
         user_mention = f'<a href="tg://user?id={user.id}">{user.full_name}</a>'
         welcome_text = (
                 f"{user_mention}, Добро пожаловать в чат. Ознакомьтесь с правилами чата ниже:\n" + tt
         )
-
-        permissions = ChatPermissions(can_send_messages=False)
-        await bot.restrict_chat_member(chat.id, user.id, permissions)
 
         captcha_message = await bot.send_message(
             chat.id,
@@ -731,11 +824,12 @@ async def on_user_joined_html_mention(event: ChatMemberUpdated):
             reply_markup=captcha.as_markup()
         )
 
-        # Добавляем пользователя в список ожидания
+        # Добавляем пользователя в список ожидания с сохраненными правами
         pending_users[user.id] = {
             'chat_id': chat.id,
             'join_time': asyncio.get_event_loop().time(),
-            'captcha_message_id': captcha_message.message_id
+            'captcha_message_id': captcha_message.message_id,
+            'original_permissions': original_permissions  # Сохраняем исходные права
         }
 
         # Запускаем таймер на бан через 60 секунд
@@ -751,15 +845,11 @@ async def ban_user_if_no_captcha(user_id: int, chat_id: int):
 
         # Проверяем, все еще ли пользователь в ожидании
         if user_id in pending_users:
-            kbuc +=1
-            print(f'Количество забаненных пользователь с момента последнего перезапуска: {kbuc}')
+            kbuc += 1
+            print(f'Количество забаненных пользователей с момента последнего перезапуска: {kbuc}')
             try:
                 # Баним пользователя
                 await bot.ban_chat_member(chat_id, user_id)
-
-                # Уведомляем о бане
-
-
             except Exception as e:
                 print(f"Ошибка бана за неактивность: {e}")
 
@@ -778,27 +868,62 @@ async def ban_user_if_no_captcha(user_id: int, chat_id: int):
         # Таймер был отменен (пользователь прошел капчу)
         pass
 
+
 async def handle_captcha_success(user_id: int, chat_id: int):
     """Обрабатывает успешное прохождение капчи"""
     if user_id in pending_users:
-        # Восстанавливаем права пользователя
-        permissions = ChatPermissions(
-            can_send_messages=True,
-            can_send_media_messages=True,
-            can_send_other_messages=True,
-            can_add_web_page_previews=True
-        )
+        # Получаем сохраненные исходные права пользователя
+        original_permissions = pending_users[user_id].get('original_permissions')
 
+        if original_permissions:
+            # Восстанавливаем исходные права пользователя (с сохранением мута)
+            permissions = ChatPermissions(
+                can_send_messages=original_permissions['can_send_messages'],
+                can_send_media_messages=original_permissions['can_send_media_messages'],
+                can_send_polls=original_permissions['can_send_polls'],
+                can_send_other_messages=original_permissions['can_send_other_messages'],
+                can_add_web_page_previews=original_permissions['can_add_web_page_previews'],
+                can_change_info=original_permissions['can_change_info'],
+                can_invite_users=original_permissions['can_invite_users'],
+                can_pin_messages=original_permissions['can_pin_messages']
+            )
+
+            # Если был мут с определенной датой окончания, восстанавливаем его
+            until_date = original_permissions.get('until_date')
+
+            try:
+                if until_date:
+                    # Восстанавливаем мут с оригинальной датой окончания
+                    await bot.restrict_chat_member(chat_id, user_id, permissions, until_date=until_date)
+                else:
+                    # Восстанавливаем права без мута
+                    await bot.restrict_chat_member(chat_id, user_id, permissions)
+            except Exception as e:
+                print(f"Ошибка восстановления прав: {e}")
+        else:
+            # Если не удалось получить исходные права, устанавливаем стандартные
+            permissions = ChatPermissions(
+                can_send_messages=True,
+                can_send_media_messages=True,
+                can_send_polls=True,
+                can_send_other_messages=True,
+                can_add_web_page_previews=True,
+                can_change_info=False,
+                can_invite_users=True,
+                can_pin_messages=False
+            )
+
+            try:
+                await bot.restrict_chat_member(chat_id, user_id, permissions)
+            except Exception as e:
+                print(f"Ошибка восстановления стандартных прав: {e}")
+
+        # Удаляем сообщение с капчей
         try:
-            await bot.restrict_chat_member(chat_id, user_id, permissions)
-
-            # Удаляем сообщение с капчей
             captcha_message_id = pending_users[user_id]['captcha_message_id']
             await bot.delete_message(chat_id, captcha_message_id)
-
-
         except Exception as e:
-            print(f"Ошибка восстановления прав: {e}")
+            print(f"Ошибка удаления сообщения капчи: {e}")
 
         # Удаляем пользователя из списка ожидания
         del pending_users[user_id]
