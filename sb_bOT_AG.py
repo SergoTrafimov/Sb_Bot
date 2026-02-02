@@ -24,30 +24,32 @@ dp = Dispatcher()
 db = sqlite3.connect('sb.db')
 cursor = db.cursor()
 
-
-
-
-file = open('banwords.txt', 'r', encoding='utf-8')
 banwordlist = []
-for i in file:
-    banwordlist.append(i.replace('\n', '', 1))
-file.close()
-f = open('urlwhitelist.txt', 'r')
-wlu = []
-for i in f:
-    wlu.append(i.replace('\n', '', 1))
-f.close()
-l = open('banwordsprof.txt', 'r', encoding='utf-8')
-bwp =[]
-for i in l:
-    bwp.append(i.replace('\n', '', 1))
-l.close()
+wlu = []  # whitelist urls
+bwp = []  # ban words prof
+bf = []   # ban frase
 
-fr = open('banfrase.txt', 'r', encoding='utf-8')
-bf = []
-for i in fr:
-    bf.append((i.replace('\n', '', 1)))
-fr.close()
+
+def load_lists():
+    global banwordlist, wlu, bwp, bf
+
+    with open('banwords.txt', 'r', encoding='utf-8') as file:
+        banwordlist = [line.strip() for line in file if line.strip()]
+
+    with open('urlwhitelist.txt', 'r', encoding='utf-8') as f:
+        wlu = [line.strip() for line in f if line.strip()]
+
+    with open('banwordsprof.txt', 'r', encoding='utf-8') as l:
+        bwp = [line.strip() for line in l if line.strip()]
+
+    with open('banfrase.txt', 'r', encoding='utf-8') as fr:
+        bf = [line.strip() for line in fr if line.strip()]
+
+
+# Загрузите при старте бота
+load_lists()
+
+
 
 g = InlineKeyboardBuilder()
 g.add(InlineKeyboardButton(text="Запретить писать нарушителю 1 час", callback_data="mn"))
@@ -278,39 +280,21 @@ async def whiteupd(message: types.Message):
         await bot.send_message(message.chat.id, wlupd)
 
 @dp.message(Command('wlupd'))
-async def wlu(message: types.Message):
-    s = message.text.split()[1]
-    if s[0] == '*' and s[-1] =='*':
-        f = open('urlwhitelist.txt', 'a', encoding='utf-8')
-        f.write(f'\n{s}')
-        f.close()
-        await bot.send_message(message.chat.id, 'Отлично, теперь обнови белый список командой /reload')
-    else:
-        await bot.send_message(message.chat.id, 'Ссылка не похожа на маску, перепроверь и повтори ппопытку')
+async def wlup(message: types.Message):
+    try:
+        s = message.text.split()[1].strip()
+        if s.startswith('*') and s.endswith('*'):
+            with open('urlwhitelist.txt', 'a', encoding='utf-8') as f:
+                f.write(f'\n{s}')
+            load_lists()  # Немедленно обновляем список в памяти
+            await message.answer('Отлично, теперь обнови белый список командой /reload')
+        else:
+            await message.answer('Ссылка не похожа на маску, перепроверь и повтори попытку')
+    except IndexError:
+        await message.answer('Укажите маску: /wlupd *amediateka.ru*')
 
-@dp.message(Command('reload'))
 async def reload(message: types.Message):
-    file = open('banwords.txt', 'r', encoding='utf-8')
-    banwordlist = []
-    for i in file:
-        banwordlist.append(i.replace('\n', '', 1))
-    file.close()
-    f = open('urlwhitelist.txt', 'r')
-    wlu = []
-    for i in f:
-        wlu.append(i.replace('\n', '', 1))
-    f.close()
-    l = open('banwordsprof.txt', 'r', encoding='utf-8')
-    bwp = []
-    for i in l:
-        bwp.append(i.replace('\n', '', 1))
-    l.close()
-
-    fr = open('banfrase.txt', 'r', encoding='utf-8')
-    bf = []
-    for i in fr:
-        bf.append((i.replace('\n', '', 1)))
-    fr.close()
+    load_lists()
     await bot.send_message(message.chat.id, 'Обновлено!')
 
 @dp.message(Command('warn'))
