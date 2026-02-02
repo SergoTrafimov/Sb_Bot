@@ -11,7 +11,7 @@ from aiogram.enums import ChatMemberStatus
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from uidtsb import get_user_simple
-from constant import TOKEN, TO_CHAT_ID, ALLOWED_CHANNELS, ida, helpt, get_chat_id, tt
+from constant import TOKEN, TO_CHAT_ID, ALLOWED_CHANNELS, ida, helpt, get_chat_id, tt, wlupd
 import re
 from aiogram.utils.markdown import hlink
 
@@ -214,6 +214,7 @@ async def rep(callback: types.CallbackQuery):
     if callback.data == 'bo':
         chat_id=callback.from_user.id
         await bot.ban_chat_member(rchat_id, nid)
+        await bot.delete_message(rchat_id, rmessage_id)
         await bot.send_message(rchat_id, f"Пользователь @{opun} забанен")
         await bot.send_message(chat_id, "Готово")
         await bot.send_message(chat_id, "Готово")
@@ -270,6 +271,47 @@ async def is_user_admin(chat_id: int, user_id: int) -> bool:
     except Exception as e:
         print(f"Ошибка проверки прав администратора: {e}")
         return False
+
+@dp.message(Command('whitelist'))
+async def whiteupd(message: types.Message):
+    if message.from_user.id in ida:
+        await bot.send_message(message.chat.id, wlupd)
+
+@dp.message(Command('wlupd'))
+async def wlu(message: types.Message):
+    s = message.text.split()[1]
+    if s[0] == '*' and s[-1] =='*':
+        f = open('urlwhitelist.txt', 'a', encoding='utf-8')
+        f.write(f'\n{s}')
+        f.close()
+        await bot.send_message(message.chat.id, 'Отлично, теперь обнови белый список командой /reload')
+    else:
+        await bot.send_message(message.chat.id, 'Ссылка не похожа на маску, перепроверь и повтори ппопытку')
+
+@dp.message(Command('reload'))
+async def reload(message: types.Message):
+    file = open('banwords.txt', 'r', encoding='utf-8')
+    banwordlist = []
+    for i in file:
+        banwordlist.append(i.replace('\n', '', 1))
+    file.close()
+    f = open('urlwhitelist.txt', 'r')
+    wlu = []
+    for i in f:
+        wlu.append(i.replace('\n', '', 1))
+    f.close()
+    l = open('banwordsprof.txt', 'r', encoding='utf-8')
+    bwp = []
+    for i in l:
+        bwp.append(i.replace('\n', '', 1))
+    l.close()
+
+    fr = open('banfrase.txt', 'r', encoding='utf-8')
+    bf = []
+    for i in fr:
+        bf.append((i.replace('\n', '', 1)))
+    fr.close()
+    await bot.send_message(message.chat.id, 'Обновлено!')
 
 @dp.message(Command('warn'))
 async def warn_user(message: types.Message):
