@@ -281,17 +281,20 @@ async def whiteupd(message: types.Message):
 
 @dp.message(Command('wlupd'))
 async def wlup(message: types.Message):
-    try:
-        s = message.text.split()[1].strip()
-        if s.startswith('*') and s.endswith('*'):
-            with open('urlwhitelist.txt', 'a', encoding='utf-8') as f:
-                f.write(f'\n{s}')
-            load_lists()  # Немедленно обновляем список в памяти
-            await message.answer('Отлично, теперь обнови белый список командой /reload')
-        else:
-            await message.answer('Ссылка не похожа на маску, перепроверь и повтори попытку')
-    except IndexError:
-        await message.answer('Укажите маску: /wlupd *amediateka.ru*')
+    if message.from_user.id in ida:
+        try:
+            s = message.text.split()[1].strip().lower()
+            if s.startswith('*') and s.endswith('*'):
+                with open('urlwhitelist.txt', 'a', encoding='utf-8') as f:
+                    f.write(f'\n{s}')
+                load_lists()  # Немедленно обновляем список в памяти
+                await message.answer('Отлично, теперь обнови белый список командой /reload')
+            else:
+                await message.answer('Ссылка не похожа на маску, перепроверь и повтори попытку')
+        except IndexError:
+            await message.answer('Укажите маску: /wlupd *amediateka.ru*')
+    else:
+        await bot.send_message(message.chat.id, "Эта штучка не для тебя")
 
 async def reload(message: types.Message):
     load_lists()
