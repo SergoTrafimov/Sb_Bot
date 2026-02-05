@@ -1123,7 +1123,7 @@ async def bw(message: types.Message):
             link_allowed = False
 
             for mask in wlu:
-                if fnmatch.fnmatch(link, mask):
+                if fnmatch.fnmatch(link, mask.lower()):
                     link_allowed = True
                     print(f"Ссылка разрешена: {link} по маске {mask}")
                     break
