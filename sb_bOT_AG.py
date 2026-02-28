@@ -312,8 +312,12 @@ async def warn_user(message: types.Message):
             try:
                 if not message.reply_to_message:
                     t = message.text.split(maxsplit=2)
-                    up = t[1]
-                    pr = t[2]
+                    if len(t)==3:
+                        up = t[1]
+                        pr = t[2]
+                    else:
+                        up = t[1]
+                        pr = 'Причина не указана'
                     if up[0] == '@':
                         up = up.replace('@', '', 1)
                         user_to_warn = await get_user_simple(up)
