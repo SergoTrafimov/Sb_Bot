@@ -3,6 +3,7 @@ import time
 import sqlite3
 import fnmatch
 import string
+import constant
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command, ChatMemberUpdatedFilter, IS_NOT_MEMBER, IS_MEMBER
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
@@ -14,12 +15,56 @@ from uidtsb import get_user_simple
 from constant import TOKEN, TO_CHAT_ID, ALLOWED_CHANNELS, ida, helpt, get_chat_id, tt, wlupd
 import re
 from aiogram.utils.markdown import hlink
+from aiogram.client.session.aiohttp import AiohttpSession
 
+# ========== ДОБАВЛЕНО ДЛЯ ПРОКСИ ==========
+import random
+import aiohttp
+from aiogram.exceptions import TelegramNetworkError
+
+PROXY_SOURCES = [
+    "https://raw.githubusercontent.com/proxygenerator1/ProxyGenerator/main/telegramProxys.txt",
+    "https://raw.githubusercontent.com/proxygenerator1/ProxyGenerator/main/MostStable/socks5.txt"
+]
+
+async def fetch_proxy_list():
+    proxies = []
+    for url in PROXY_SOURCES:
+        try:
+            async with aiohttp.ClientSession() as sess:
+                async with sess.get(url, timeout=10) as resp:
+                    if resp.status == 200:
+                        text = await resp.text()
+                        lines = [line.strip() for line in text.splitlines() if line.strip()]
+                        for line in lines:
+                            # Пропускаем, если нет двоеточия
+                            if ":" not in line:
+                                continue
+                            parts = line.split(':')
+                            if len(parts) != 2:
+                                continue
+                            ip, port_str = parts
+                            # Проверяем, что порт – цифры
+                            if not port_str.isdigit():
+                                continue
+                            # Собираем корректный URL
+                            proxies.append(f"socks5://{ip}:{port_str}")
+        except Exception as e:
+            print(f"Ошибка загрузки {url}: {e}")
+    proxies = list(dict.fromkeys(proxies))  # убираем дубликаты
+    return proxies
+# =========================================
+
+# Удаляем глобальные session и bot (они больше не нужны)
+# session = AiohttpSession(proxy=PROXY_URL)   # удалено
+# bot = Bot(token=TOKEN, session=session)      # удалено
+
+dp = Dispatcher()
 pending_users = {}
 
 kbuc = 0
 
-bot = Bot(token=TOKEN)
+
 dp = Dispatcher()
 db = sqlite3.connect('sb.db')
 cursor = db.cursor()
@@ -72,15 +117,15 @@ def escape_markdown(text: str) -> str:
 
 def remove_punctuation(text: str) -> str:
     """Удаляет все знаки препинания из текста"""
-    # Создаем таблицу перевода для удаления знаков препинания
     translator = str.maketrans('', '', string.punctuation)
     return text.translate(translator)
+
 @dp.message(Command('off'))
-async def vkl(message: types.Message):
+async def vkl(message: types.Message, bot: Bot):
     global on
     chat_id = message.chat.id
     user_id = message.from_user.id
-    if await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079):
+    if await is_user_admin(bot, chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079):
         on = 0
         await message.reply('Бот выключен, чтобы включить введите команду /on')
         await message.delete()
@@ -88,11 +133,11 @@ async def vkl(message: types.Message):
         await message.reply('Эта штучка для админа')
 
 @dp.message(Command('on'))
-async def vkl(message: types.Message):
+async def vkl(message: types.Message, bot: Bot):
     global on
     chat_id = message.chat.id
     user_id = message.from_user.id
-    if await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079):
+    if await is_user_admin(bot, chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079):
         on = 1
         await message.reply('Бот включен, чтобы выключить введите команду /off')
         await message.delete()
@@ -100,11 +145,11 @@ async def vkl(message: types.Message):
         await message.delete()
 
 
-async def open_chat_full_permissions(message: types.Message):
+async def open_chat_full_permissions(bot: Bot, message: types.Message):
     chat_id = message.chat.id
     user_id = message.from_user.id
 
-    if not (await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079)):
+    if not (await is_user_admin(bot, chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079)):
         await message.delete()
         return
 
@@ -145,11 +190,11 @@ async def open_chat_full_permissions(message: types.Message):
         await message.delete()
 
 
-async def close_chat_no_permissions(message: types.Message):
+async def close_chat_no_permissions(bot: Bot, message: types.Message):
     chat_id = message.chat.id
     user_id = message.from_user.id
 
-    if not (await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079)):
+    if not (await is_user_admin(bot, chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079)):
         await message.delete()
         return
 
@@ -181,15 +226,15 @@ async def close_chat_no_permissions(message: types.Message):
         await message.delete()
 
 @dp.message(Command("chaton"))
-async def handle_chaton(message: types.Message):
-    await open_chat_full_permissions(message)
+async def handle_chaton(message: types.Message, bot: Bot):
+    await open_chat_full_permissions(bot, message)
 
 @dp.message(Command("chatoff"))
-async def handle_chatoff(message: types.Message):
-    await close_chat_no_permissions(message)
+async def handle_chatoff(message: types.Message, bot: Bot):
+    await close_chat_no_permissions(bot, message)
 
 @dp.callback_query(lambda i: i.data in ['mn', 'mo', 'bn', 'bo', 'dd', 'sk', "cpt"])
-async def rep(callback: types.CallbackQuery):
+async def rep(callback: types.CallbackQuery, bot: Bot):
     global opid, nid, rmessage_id, rchat_id, opun, nun, nuid
     if callback.data == 'mn':
         permissions = ChatPermissions(can_send_messages=False)
@@ -240,7 +285,7 @@ async def rep(callback: types.CallbackQuery):
                 show_alert=True)
 
             # Обрабатываем успешное прохождение капчи
-            await handle_captcha_success(user_id, chat_id)
+            await handle_captcha_success(bot, user_id, chat_id)
         else:
             await callback.answer(
                 f"⚠️ Внимание!\n\nЭто сообщение для {nuf}",
@@ -257,7 +302,7 @@ class AutorState(StatesGroup):
     waiting_for_autor_response = State()
 
 
-async def is_user_admin(chat_id: int, user_id: int) -> bool:
+async def is_user_admin(bot: Bot, chat_id: int, user_id: int) -> bool:
     try:
         chat_member = await bot.get_chat_member(chat_id, user_id)
 
@@ -275,12 +320,12 @@ async def is_user_admin(chat_id: int, user_id: int) -> bool:
         return False
 
 @dp.message(Command('whitelist'))
-async def whiteupd(message: types.Message):
+async def whiteupd(message: types.Message, bot: Bot):
     if message.from_user.id in ida:
         await bot.send_message(message.chat.id, wlupd)
 
 @dp.message(Command('wlupd'))
-async def wlup(message: types.Message):
+async def wlup(message: types.Message, bot: Bot):
     if message.from_user.id in ida:
         try:
             s = message.text.split()[1].strip().lower()
@@ -296,18 +341,18 @@ async def wlup(message: types.Message):
     else:
         await bot.send_message(message.chat.id, "Эта штучка не для тебя")
 
-async def reload(message: types.Message):
+async def reload(message: types.Message, bot: Bot):
     load_lists()
     await bot.send_message(message.chat.id, 'Обновлено!')
 
 @dp.message(Command('warn'))
-async def warn_user(message: types.Message):
+async def warn_user(message: types.Message, bot: Bot):
     if on == 1:
         chat_id = message.chat.id
         user_id = message.from_user.id
         ap = message.from_user.username
 
-        if await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079):
+        if await is_user_admin(bot, chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079):
 
             try:
                 if not message.reply_to_message:
@@ -353,13 +398,13 @@ async def warn_user(message: types.Message):
             await message.delete()
 
 @dp.message(Command('unwarn'))
-async def warn_user(message: types.Message):
+async def warn_user(message: types.Message, bot: Bot):
     if on == 1:
         chat_id = message.chat.id
         user_id = message.from_user.id
         ap = message.from_user.username
 
-        if await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079):
+        if await is_user_admin(bot, chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079):
 
             try:
                 if not message.reply_to_message:
@@ -399,23 +444,23 @@ async def warn_user(message: types.Message):
             await message.delete()
 
 @dp.message(Command('ping'))
-async def ping(message: types.Message):
+async def ping(message: types.Message, bot: Bot):
     if on == 1:
         await message.reply('Понг')
 
 @dp.message(Command('help'))
-async def help(message: types.Message):
+async def help(message: types.Message, bot: Bot):
     if message.chat.id in ida:
         await bot.send_message(message.chat.id, helpt)
 
 
 @dp.message(Command('ban'))
-async def ban_user(message: types.Message):
+async def ban_user(message: types.Message, bot: Bot):
     if on == 1:
         chat_id = message.chat.id
         user_id = message.from_user.id
 
-        if await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079):
+        if await is_user_admin(bot, chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079):
 
                 try:
                     if not message.reply_to_message:
@@ -439,19 +484,19 @@ async def ban_user(message: types.Message):
 
 
 @dp.message(Command('rules'))
-async def rule(message: types.Message):
+async def rule(message: types.Message, bot: Bot):
     if on == 1:
         await message.reply("Правила чата:\n"+tt)
         await message.delete()
 
 
 @dp.message(Command('unban'))
-async def unban_user(message: types.Message):
+async def unban_user(message: types.Message, bot: Bot):
     if on == 1:
         chat_id = message.chat.id
         user_id = message.from_user.id
 
-        if await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079):
+        if await is_user_admin(bot, chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079):
 
             try:
                 if not message.reply_to_message:
@@ -475,12 +520,12 @@ async def unban_user(message: types.Message):
 
 
 @dp.message(Command('mute'))
-async def mute_user(message: types.Message):
+async def mute_user(message: types.Message, bot: Bot):
     if on == 1:
         chat_id = message.chat.id
         user_id = message.from_user.id
 
-        if not (await is_user_admin(chat_id, user_id) or
+        if not (await is_user_admin(bot, chat_id, user_id) or
                 (message.sender_chat and message.sender_chat.type == "channel" and
                  message.sender_chat.id == -1001951614079)):
             await message.delete()
@@ -623,12 +668,12 @@ async def mute_user(message: types.Message):
 
 
 @dp.message(Command('unmute'))
-async def unmute_user(message: types.Message):
+async def unmute_user(message: types.Message, bot: Bot):
     if on == 1:
         chat_id = message.chat.id
         user_id = message.from_user.id
 
-        if not (await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079)):
+        if not (await is_user_admin(bot, chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id == -1001951614079)):
             await message.delete()
             return
 
@@ -677,7 +722,7 @@ async def unmute_user(message: types.Message):
             await message.delete()
 
 @dp.message(Command('report'))
-async def rep(message:types.Message):
+async def rep(message:types.Message, bot: Bot):
     if on == 1:
         global opid, nid, rmessage_id, rchat_id, opun, nun
         if message.reply_to_message:
@@ -711,27 +756,27 @@ async def rep(message:types.Message):
             await message.delete()
 
 @dp.message(Command('update'))
-async def update(message:types.Message):
+async def update(message:types.Message, bot: Bot):
     texts = message.text.split(maxsplit=1)
     text = texts[1]
     for i in ida:
         await bot.send_message(i, f'Обновление функционала: \n Что нового? \n {text}')
 
 @dp.message(Command('debug'))
-async def debug_command(message: types.Message, state: FSMContext):
+async def debug_command(message: types.Message, state: FSMContext, bot: Bot):
     await message.answer('Введите Ваше обращение к какому-то прогеру')
     await state.set_state(DebugState.waiting_for_debug_message)
 
 
 @dp.message(DebugState.waiting_for_debug_message)
-async def debug_new(message: types.Message, state: FSMContext):
+async def debug_new(message: types.Message, state: FSMContext, bot: Bot):
     await bot.forward_message(TO_CHAT_ID, message.chat.id, message.message_id)
     await message.answer('Ваше обращение принято')
     await state.clear()
 
 
 @dp.message(Command('autor'))
-async def autor_command(message: types.Message, state: FSMContext):
+async def autor_command(message: types.Message, state: FSMContext, bot: Bot):
     if message.chat.id == TO_CHAT_ID:
         await message.answer('Введи ответ')
         await state.set_state(AutorState.waiting_for_autor_response)
@@ -740,14 +785,14 @@ async def autor_command(message: types.Message, state: FSMContext):
 
 
 @dp.message(AutorState.waiting_for_autor_response)
-async def autor_response(message: types.Message, state: FSMContext):
+async def autor_response(message: types.Message, state: FSMContext, bot: Bot):
     await bot.send_message(get_chat_id, message.text)
     await message.answer('Отправлено')
     await state.clear()
 
 
 @dp.chat_member(ChatMemberUpdatedFilter(IS_NOT_MEMBER >> IS_MEMBER))
-async def on_user_joined_html_mention(event: ChatMemberUpdated):
+async def on_user_joined_html_mention(event: ChatMemberUpdated, bot: Bot):
     global nuid, nuf
     if on == 1:
         user = event.new_chat_member.user
@@ -866,10 +911,10 @@ async def on_user_joined_html_mention(event: ChatMemberUpdated):
         }
 
         # Запускаем таймер на бан через 60 секунд
-        asyncio.create_task(ban_user_if_no_captcha(user.id, chat.id))
+        asyncio.create_task(ban_user_if_no_captcha(bot, user.id, chat.id))
 
 
-async def ban_user_if_no_captcha(user_id: int, chat_id: int):
+async def ban_user_if_no_captcha(bot: Bot, user_id: int, chat_id: int):
     global kbuc
     """Банит пользователя если он не прошел капчу за 60 секунд"""
     try:
@@ -902,7 +947,7 @@ async def ban_user_if_no_captcha(user_id: int, chat_id: int):
         pass
 
 
-async def handle_captcha_success(user_id: int, chat_id: int):
+async def handle_captcha_success(bot: Bot, user_id: int, chat_id: int):
     """Обрабатывает успешное прохождение капчи"""
     if user_id in pending_users:
         # Получаем сохраненные исходные права пользователя
@@ -974,7 +1019,7 @@ processed_groups = set()
     ContentType.VIDEO_NOTE,
     ContentType.DOCUMENT
 ]))
-async def bw(message: types.Message):
+async def bw(message: types.Message, bot: Bot):
     global soo, kbuc, found_bad_word
     found_bad_word = False
     if on == 1:
@@ -993,7 +1038,7 @@ async def bw(message: types.Message):
         chat_id = message.chat.id
         user_id = message.from_user.id
         # Проверяем права администратора
-        if await is_user_admin(chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id in ALLOWED_CHANNELS):
+        if await is_user_admin(bot, chat_id, user_id) or (message.sender_chat and message.sender_chat.type == "channel" and message.sender_chat.id in ALLOWED_CHANNELS):
             return
         if message.sender_chat and message.sender_chat.type == "channel":
                 channel_id = message.sender_chat.id
@@ -1175,12 +1220,47 @@ async def bw(message: types.Message):
                     print(f"Database error: {e}")
                     await message.reply("Не удалось выдать предупреждение пользователю.")
 
+# ========== ДОБАВЛЕННЫЙ ЗАПУСК С ПЕРЕБОРОМ ПРОКСИ ==========
+async def run_bot_with_proxy(proxy_url: str):
+    try:
+        session = AiohttpSession(proxy=proxy_url)
+        bot = Bot(token=TOKEN, session=session)
+    except Exception as e:
+        print(f"❌ Ошибка создания сессии с прокси {proxy_url}: {e}")
+        raise TelegramNetworkError from e
+    try:
+        print(f"🚀 Запуск бота с прокси: {proxy_url}")
+        await dp.start_polling(bot)
+    except (TelegramNetworkError, aiohttp.ClientError, asyncio.TimeoutError, OSError) as e:
+        print(f"❌ Сетевая ошибка с {proxy_url}: {type(e).__name__} – {e}")
+        raise
+    except Exception as e:
+        print(f"❗ Непредвиденная ошибка в работе бота: {e}")
+        raise
+    finally:
+        await session.close()
 
 async def main():
-    await dp.start_polling(bot)
-#
+    print("📥 Загружаем список прокси...")
+    proxies = await fetch_proxy_list()
+    if not proxies:
+        print("⚠️ Не удалось загрузить прокси, используем резервный.")
+        proxies = ["socks5://109.120.191.248:1080"]
+    else:
+        print(f"✅ Загружено {len(proxies)} прокси")
 
+    random.shuffle(proxies)
 
-if __name__ == '__main__':
+    for proxy in proxies:
+        try:
+            await run_bot_with_proxy(proxy)
+            break
+        except (TelegramNetworkError, aiohttp.ClientError, asyncio.TimeoutError, OSError):
+            print(f"⚠️ Прокси {proxy} не работает, пробуем следующий...")
+            await asyncio.sleep(2)
+        except Exception as e:
+            print(f"❗ Критическая ошибка: {e}")
+            break
+
+if __name__ == "__main__":
     asyncio.run(main())
-    
