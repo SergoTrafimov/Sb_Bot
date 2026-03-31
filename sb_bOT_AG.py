@@ -23,8 +23,10 @@ import aiohttp
 from aiogram.exceptions import TelegramNetworkError
 
 PROXY_SOURCES = [
-    "https://raw.githubusercontent.com/proxygenerator1/ProxyGenerator/main/telegramProxys.txt",
-    "https://raw.githubusercontent.com/proxygenerator1/ProxyGenerator/main/MostStable/socks5.txt"
+    "https://raw.githubusercontent.com/Argh94/Proxy-List/main/SOCKS5.txt",
+    "https://raw.githubusercontent.com/proxy4parsing/proxy-list/main/socks5.txt",
+
+
 ]
 
 async def fetch_proxy_list():
@@ -37,21 +39,30 @@ async def fetch_proxy_list():
                         text = await resp.text()
                         lines = [line.strip() for line in text.splitlines() if line.strip()]
                         for line in lines:
-                            # Пропускаем, если нет двоеточия
-                            if ":" not in line:
+                            # Удаляем возможные префиксы socks5:// или socks5:
+                            if line.startswith('socks5://'):
+                                line = line[8:]
+                            elif line.startswith('socks5:'):
+                                line = line[6:]
+
+                            # Теперь line должен быть ip:port
+                            if ':' not in line:
                                 continue
                             parts = line.split(':')
-                            if len(parts) != 2:
+                            if len(parts) < 2:
                                 continue
-                            ip, port_str = parts
-                            # Проверяем, что порт – цифры
-                            if not port_str.isdigit():
+                            ip = parts[0]
+                            port = parts[1]
+                            # Проверяем, что порт состоит из цифр
+                            if not port.isdigit():
                                 continue
-                            # Собираем корректный URL
-                            proxies.append(f"socks5://{ip}:{port_str}")
+                            # Убеждаемся, что ip не пустой
+                            if ip:
+                                proxies.append(f"socks5:/{ip}:{port}")
         except Exception as e:
             print(f"Ошибка загрузки {url}: {e}")
-    proxies = list(dict.fromkeys(proxies))  # убираем дубликаты
+    proxies = list(dict.fromkeys(proxies))
+    print(f"Загружено {len(proxies)} прокси")
     return proxies
 # =========================================
 
@@ -1222,12 +1233,18 @@ async def bw(message: types.Message, bot: Bot):
 
 # ========== ДОБАВЛЕННЫЙ ЗАПУСК С ПЕРЕБОРОМ ПРОКСИ ==========
 async def run_bot_with_proxy(proxy_url: str):
+    # Проверяем, что URL корректен
+    if not proxy_url or proxy_url.count('://') != 1 or proxy_url.endswith('://') or '://' in proxy_url and proxy_url.split('://')[1] == '':
+        print(f"❌ Некорректный формат прокси: {proxy_url}")
+        raise TelegramNetworkError(f"Invalid proxy URL: {proxy_url}")
+
     try:
         session = AiohttpSession(proxy=proxy_url)
         bot = Bot(token=TOKEN, session=session)
     except Exception as e:
         print(f"❌ Ошибка создания сессии с прокси {proxy_url}: {e}")
         raise TelegramNetworkError from e
+
     try:
         print(f"🚀 Запуск бота с прокси: {proxy_url}")
         await dp.start_polling(bot)
@@ -1236,7 +1253,7 @@ async def run_bot_with_proxy(proxy_url: str):
         raise
     except Exception as e:
         print(f"❗ Непредвиденная ошибка в работе бота: {e}")
-        raise
+        raise  # останавливаем бот, если ошибка не сетевая
     finally:
         await session.close()
 
@@ -1245,7 +1262,7 @@ async def main():
     proxies = await fetch_proxy_list()
     if not proxies:
         print("⚠️ Не удалось загрузить прокси, используем резервный.")
-        proxies = ["socks5://109.120.191.248:1080"]
+        proxies = ["socks5://109.120.191.248:1080"]  # ваш старый прокси
     else:
         print(f"✅ Загружено {len(proxies)} прокси")
 
@@ -1255,8 +1272,8 @@ async def main():
         try:
             await run_bot_with_proxy(proxy)
             break
-        except (TelegramNetworkError, aiohttp.ClientError, asyncio.TimeoutError, OSError):
-            print(f"⚠️ Прокси {proxy} не работает, пробуем следующий...")
+        except (TelegramNetworkError, aiohttp.ClientError, asyncio.TimeoutError, OSError, ValueError) as e:
+            print(f"⚠️ Прокси {proxy} не работает: {type(e).__name__} – {e}")
             await asyncio.sleep(2)
         except Exception as e:
             print(f"❗ Критическая ошибка: {e}")
