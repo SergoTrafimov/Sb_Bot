@@ -1244,48 +1244,65 @@ async def bw(message: types.Message, bot: Bot):
 
 # ========== ДОБАВЛЕННЫЙ ЗАПУСК С ПЕРЕБОРОМ ПРОКСИ ==========
 
+import ssl
+import aiohttp
+from aiogram import Bot
+from aiogram.client.session.aiohttp import AiohttpSession
+
+
 class CustomAiohttpSession(AiohttpSession):
-    """Кастомная сессия для игнорирования SSL-ошибок при использовании прокси"""
+    """Кастомная сессия с отключённой проверкой SSL и правильным управлением коннектором"""
+
     async def create_session(self):
         ssl_context = ssl.create_default_context()
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE
-        connector = aiohttp.TCPConnector(ssl=ssl_context)
-        self._session = aiohttp.ClientSession(connector=connector)
+
+        # Создаём коннектор, который НЕ принадлежит сессии (connector_owner=False)
+        self._connector = aiohttp.TCPConnector(ssl=ssl_context)
+        self._session = aiohttp.ClientSession(connector=self._connector, connector_owner=False)
         return self._session
+
+    async def close(self):
+        """Закрываем и сессию, и коннектор явно"""
+        if self._session and not self._session.closed:
+            await self._session.close()
+        if self._connector and not self._connector.closed:
+            await self._connector.close()
+        await super().close()
 
 
 async def run_bot_with_proxy(proxy_url: str):
+    """
+    Запускает бота с указанным прокси.
+    При любой ошибке выбрасывает исключение для переключения на следующий прокси.
+    """
+    # Проверка формата прокси
+    if not proxy_url or '://' not in proxy_url:
+        raise ValueError(f"Некорректный формат прокси: {proxy_url}")
+    if proxy_url.count('/') > 2 and proxy_url.startswith('socks5:///'):
+        raise ValueError(f"Прокси содержит пустой хост: {proxy_url}")
+
     session = CustomAiohttpSession(proxy=proxy_url)
     bot = Bot(token=TOKEN, session=session)
 
     try:
         print(f"🚀 Запуск бота с прокси: {proxy_url}")
         await dp.start_polling(bot)
+    except (TelegramNetworkError, aiohttp.ClientError, asyncio.TimeoutError, OSError, ConnectionError) as e:
+        raise RuntimeError(f"Сетевая ошибка: {type(e).__name__}: {e}") from e
     except Exception as e:
-        print(f"❌ Ошибка: {e}")
-        raise
+        print(f"❗ Неожиданная ошибка при работе с прокси {proxy_url}: {e}")
+        raise RuntimeError(f"Неожиданная ошибка: {e}") from e
     finally:
-        # Гарантированно закрываем сессию бота и все соединения
-        try:
-            await bot.session.close()  # Явно закрываем сессию бота
-        except:
-            pass
-        try:
-            await session.close()  # Закрываем кастомную сессию
-        except:
-            pass
+        # ГАРАНТИРОВАННОЕ ЗАКРЫТИЕ – сначала бота, потом сессии
+        await bot.session.close()
+        await session.close()
 
-        # Дополнительно закрываем коннектор
-        if hasattr(session, '_connector') and session._connector:
-            try:
-                await session._connector.close()
-            except:
-                pass
 
 async def main():
     print("📥 Загружаем список прокси...")
-    proxies = await fetch_proxy_list()  # предполагается, что функция fetch_proxy_list у вас уже есть
+    proxies = await fetch_proxy_list()  # ваша функция получения прокси
     if not proxies:
         print("⚠️ Не удалось загрузить прокси, используем резервный.")
         proxies = ["socks5://109.120.191.248:1080"]
@@ -1300,12 +1317,11 @@ async def main():
 
         try:
             await run_bot_with_proxy(proxy)
-            # Если бот завершился без ошибок (например, нажали Ctrl+C), выходим
             print("✅ Бот штатно завершил работу. Выходим.")
             break
         except RuntimeError as e:
             print(f"⚠️ Прокси {proxy} не работает: {e}")
-            await asyncio.sleep(2)
+            await asyncio.sleep(0.5)  # пауза перед следующей попыткой
         except KeyboardInterrupt:
             print("👋 Бот остановлен пользователем.")
             break
