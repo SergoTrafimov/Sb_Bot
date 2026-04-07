@@ -18,7 +18,6 @@ from aiogram.utils.markdown import hlink
 from aiogram.client.session.aiohttp import AiohttpSession
 import ssl
 from aiohttp import TCPConnector
-import warnings
 
 # ========== ДОБАВЛЕНО ДЛЯ ПРОКСИ ==========
 import random
@@ -1251,24 +1250,29 @@ from aiogram import Bot
 from aiogram.client.session.aiohttp import AiohttpSession
 
 
-warnings.filterwarnings("ignore", message=".*Unclosed.*")
-warnings.filterwarnings("ignore", category=ResourceWarning)
-
-class CustomAiohttpSession(AiohttpSession):
+class SafeAiohttpSession(AiohttpSession):
+    """Сессия, которая гарантированно закрывает и сессию, и коннектор"""
     async def create_session(self):
         ssl_context = ssl.create_default_context()
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE
         self._connector = aiohttp.TCPConnector(ssl=ssl_context)
+        # connector_owner=True (по умолчанию) — сессия закроет коннектор при close()
         self._session = aiohttp.ClientSession(connector=self._connector)
         return self._session
 
     async def close(self):
-        # Закрываем сначала сессию, потом коннектор
-        if self._session and not self._session.closed:
-            await self._session.close()
-        if self._connector and not self._connector.closed:
-            await self._connector.close()
+        """Закрываем всё, даже если были ошибки"""
+        try:
+            if self._session and not self._session.closed:
+                await self._session.close()
+        except Exception:
+            pass
+        try:
+            if self._connector and not self._connector.closed:
+                await self._connector.close()
+        except Exception:
+            pass
         await super().close()
 
 
@@ -1276,28 +1280,24 @@ async def run_bot_with_proxy(proxy_url: str):
     if not proxy_url or '://' not in proxy_url:
         raise ValueError(f"Некорректный прокси: {proxy_url}")
 
-    session = CustomAiohttpSession(proxy=proxy_url)
+    session = SafeAiohttpSession(proxy=proxy_url)
     bot = Bot(token=TOKEN, session=session)
 
     try:
         print(f"🚀 Запуск с прокси: {proxy_url}")
         await dp.start_polling(bot)
-    except (TelegramNetworkError, aiohttp.ClientError, asyncio.TimeoutError, OSError, ConnectionError) as e:
-        raise RuntimeError(f"Сетевая ошибка: {type(e).__name__}") from e
     except Exception as e:
         raise RuntimeError(f"Ошибка: {e}") from e
     finally:
-        # Останавливаем диспетчер (важно!)
-        await dp.stop_polling()
-        # Закрываем сессии
+        # Жёстко закрываем всё
         await bot.session.close()
         await session.close()
         # Даём время на завершение
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.1)
 
 
 async def main():
-    proxies = await fetch_proxy_list()  # ваша функция получения прокси
+    proxies = await fetch_proxy_list()  # ваша функция
     if not proxies:
         proxies = ["socks5://109.120.191.248:1080"]
 
@@ -1309,8 +1309,7 @@ async def main():
         print(f"\n🔄 Попытка #{index} с {proxy}")
         try:
             await run_bot_with_proxy(proxy)
-            print("✅ Бот успешно завершил работу")
-            break
+            break  # успешный запуск
         except RuntimeError as e:
             print(f"⚠️ {proxy} не работает: {e}")
             await asyncio.sleep(1)
@@ -1318,16 +1317,17 @@ async def main():
             print("👋 Остановлено пользователем")
             break
 
-    # Принудительная очистка цикла событий
+    # Принудительно останавливаем цикл событий и закрываем все ресурсы
+    print("🛑 Завершаем работу...")
     await asyncio.sleep(0.2)
+    # Отменяем все оставшиеся задачи (если есть)
     tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
     for task in tasks:
         task.cancel()
     await asyncio.gather(*tasks, return_exceptions=True)
-    await asyncio.get_event_loop().shutdown_asyncgens()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    # Закрываем цикл событий
+    loop = asyncio.get_event_loop()
+    await loop.shutdown_asyncgens()
+    loop.close()
 if __name__ == "__main__":
     asyncio.run(main())
