@@ -19,6 +19,11 @@ from aiogram.client.session.aiohttp import AiohttpSession
 import ssl
 from aiohttp import TCPConnector
 import warnings
+import logging
+
+# Устанавливаем уровень логирования ERROR для шумных библиотек
+logging.getLogger("aiohttp").setLevel(logging.ERROR)
+logging.getLogger("asyncio").setLevel(logging.ERROR)
 
 # ========== ДОБАВЛЕНО ДЛЯ ПРОКСИ ==========
 import random
