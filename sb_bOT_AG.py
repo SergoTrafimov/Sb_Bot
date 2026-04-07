@@ -1254,31 +1254,34 @@ class CustomAiohttpSession(AiohttpSession):
         self._session = aiohttp.ClientSession(connector=connector)
         return self._session
 
-async def run_bot_with_proxy(proxy_url: str):
-    """
-    Запускает бота с указанным прокси.
-    При любой ошибке выбрасывает исключение для переключения на следующий прокси.
-    """
-    # Проверка на пустой хост или некорректный формат
-    if not proxy_url or '://' not in proxy_url:
-        raise ValueError(f"Некорректный формат прокси: {proxy_url}")
-    if proxy_url.count('/') > 2 and proxy_url.startswith('socks5:///'):
-        raise ValueError(f"Прокси содержит пустой хост: {proxy_url}")
 
-    # Создаём кастомную сессию с поддержкой SSL без проверки
+async def run_bot_with_proxy(proxy_url: str):
     session = CustomAiohttpSession(proxy=proxy_url)
     bot = Bot(token=TOKEN, session=session)
 
     try:
         print(f"🚀 Запуск бота с прокси: {proxy_url}")
         await dp.start_polling(bot)
-    except (TelegramNetworkError, aiohttp.ClientError, asyncio.TimeoutError, OSError, ConnectionError) as e:
-        raise RuntimeError(f"Сетевая ошибка: {type(e).__name__}: {e}") from e
     except Exception as e:
-        print(f"❗ Неожиданная ошибка при работе с прокси {proxy_url}: {e}")
-        raise RuntimeError(f"Неожиданная ошибка: {e}") from e
+        print(f"❌ Ошибка: {e}")
+        raise
     finally:
-        await session.close()
+        # Гарантированно закрываем сессию бота и все соединения
+        try:
+            await bot.session.close()  # Явно закрываем сессию бота
+        except:
+            pass
+        try:
+            await session.close()  # Закрываем кастомную сессию
+        except:
+            pass
+
+        # Дополнительно закрываем коннектор
+        if hasattr(session, '_connector') and session._connector:
+            try:
+                await session._connector.close()
+            except:
+                pass
 
 async def main():
     print("📥 Загружаем список прокси...")
