@@ -21,16 +21,12 @@ from aiohttp import TCPConnector
 import warnings
 import logging
 
-# Устанавливаем уровень логирования ERROR для шумных библиотек
-logging.getLogger("aiohttp").setLevel(logging.ERROR)
-logging.getLogger("asyncio").setLevel(logging.ERROR)
+
 
 # ========== ДОБАВЛЕНО ДЛЯ ПРОКСИ ==========
 import random
 import aiohttp
 from aiogram.exceptions import TelegramNetworkError
-warnings.filterwarnings("ignore", message=".*Unclosed.*")
-warnings.filterwarnings("ignore", category=ResourceWarning)
 
 PROXY_SOURCES = [
     # ваши исходные ссылки
@@ -1253,7 +1249,24 @@ async def bw(message: types.Message, bot: Bot):
 # ========== ДОБАВЛЕННЫЙ ЗАПУСК С ПЕРЕБОРОМ ПРОКСИ ==========
 
 
+warnings.filterwarnings("ignore", category=ResourceWarning)
 
+# --- 2. Настраиваем логирование для шумных библиотек
+logging.getLogger("aiohttp").setLevel(logging.ERROR)
+logging.getLogger("asyncio").setLevel(logging.ERROR)
+
+# --- 3. Главное: подменяем обработчик исключений цикла событий
+# Эта функция будет игнорировать только сообщения, содержащие "Unclosed connection"
+def _silence_aiohttp_warnings(loop, context):
+    # Если сообщение содержит "Unclosed connection" — просто игнорируем его
+    if 'Unclosed connection' in context.get('message', ''):
+        return
+    # В противном случае передаём управление стандартному обработчику
+    loop.default_exception_handler(context)
+
+# Получаем текущий цикл событий и устанавливаем наш обработчик
+loop = asyncio.get_event_loop()
+loop.set_exception_handler(_silence_aiohttp_warnings)
 class CustomAiohttpSession(AiohttpSession):
     async def create_session(self):
         ssl_context = ssl.create_default_context()
