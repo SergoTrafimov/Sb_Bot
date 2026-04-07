@@ -1250,101 +1250,84 @@ from aiogram import Bot
 from aiogram.client.session.aiohttp import AiohttpSession
 
 
-class CustomAiohttpSession(AiohttpSession):
-    """Кастомная сессия с отключённой проверкой SSL и правильным управлением коннектором"""
-
+class SafeAiohttpSession(AiohttpSession):
+    """Сессия, которая гарантированно закрывает и сессию, и коннектор"""
     async def create_session(self):
         ssl_context = ssl.create_default_context()
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE
-
-        # Создаём коннектор, который НЕ принадлежит сессии (connector_owner=False)
         self._connector = aiohttp.TCPConnector(ssl=ssl_context)
-        self._session = aiohttp.ClientSession(connector=self._connector, connector_owner=False)
+        # connector_owner=True (по умолчанию) — сессия закроет коннектор при close()
+        self._session = aiohttp.ClientSession(connector=self._connector)
         return self._session
 
     async def close(self):
-        """Закрываем и сессию, и коннектор явно"""
-        if self._session and not self._session.closed:
-            await self._session.close()
-        if self._connector and not self._connector.closed:
-            await self._connector.close()
+        """Закрываем всё, даже если были ошибки"""
+        try:
+            if self._session and not self._session.closed:
+                await self._session.close()
+        except Exception:
+            pass
+        try:
+            if self._connector and not self._connector.closed:
+                await self._connector.close()
+        except Exception:
+            pass
         await super().close()
 
 
 async def run_bot_with_proxy(proxy_url: str):
-    """
-    Запускает бота с указанным прокси.
-    При любой ошибке выбрасывает исключение для переключения на следующий прокси.
-    """
-    # Проверка формата прокси
     if not proxy_url or '://' not in proxy_url:
-        raise ValueError(f"Некорректный формат прокси: {proxy_url}")
-    if proxy_url.count('/') > 2 and proxy_url.startswith('socks5:///'):
-        raise ValueError(f"Прокси содержит пустой хост: {proxy_url}")
+        raise ValueError(f"Некорректный прокси: {proxy_url}")
 
-    session = CustomAiohttpSession(proxy=proxy_url)
+    session = SafeAiohttpSession(proxy=proxy_url)
     bot = Bot(token=TOKEN, session=session)
 
     try:
-        print(f"🚀 Запуск бота с прокси: {proxy_url}")
+        print(f"🚀 Запуск с прокси: {proxy_url}")
         await dp.start_polling(bot)
-    except (TelegramNetworkError, aiohttp.ClientError, asyncio.TimeoutError, OSError, ConnectionError) as e:
-        raise RuntimeError(f"Сетевая ошибка: {type(e).__name__}: {e}") from e
     except Exception as e:
-        print(f"❗ Неожиданная ошибка при работе с прокси {proxy_url}: {e}")
-        raise RuntimeError(f"Неожиданная ошибка: {e}") from e
-        # ... внутри run_bot_with_proxy ...
+        raise RuntimeError(f"Ошибка: {e}") from e
     finally:
-        # Закрываем сессию бота
+        # Жёстко закрываем всё
         await bot.session.close()
-        # Закрываем нашу кастомную сессию
         await session.close()
-
-        # Добавляем принудительное закрытие внутреннего коннектора
-        # Используем _get_connector для получения коннектора
-        connector = getattr(session, '_get_connector', None)
-        if connector:
-            try:
-                conn = connector()
-                if not conn.closed:
-                    await conn.close()
-            except Exception:
-                pass
-
-        # Небольшая пауза для гарантии
+        # Даём время на завершение
         await asyncio.sleep(0.1)
 
 
 async def main():
-    print("📥 Загружаем список прокси...")
-    proxies = await fetch_proxy_list()  # ваша функция получения прокси
+    proxies = await fetch_proxy_list()  # ваша функция
     if not proxies:
-        print("⚠️ Не удалось загрузить прокси, используем резервный.")
         proxies = ["socks5://109.120.191.248:1080"]
 
-    print(f"✅ Загружено {len(proxies)} прокси. Начинаем бесконечный перебор...")
-
+    print(f"✅ Загружено {len(proxies)} прокси")
     index = 0
     while True:
         proxy = proxies[index % len(proxies)]
         index += 1
-        print(f"\n🔄 Попытка #{index} с прокси: {proxy}")
-
+        print(f"\n🔄 Попытка #{index} с {proxy}")
         try:
             await run_bot_with_proxy(proxy)
-            print("✅ Бот штатно завершил работу. Выходим.")
-            break
+            break  # успешный запуск
         except RuntimeError as e:
-            print(f"⚠️ Прокси {proxy} не работает: {e}")
-            await asyncio.sleep(0.5)  # пауза перед следующей попыткой
+            print(f"⚠️ {proxy} не работает: {e}")
+            await asyncio.sleep(1)
         except KeyboardInterrupt:
-            print("👋 Бот остановлен пользователем.")
+            print("👋 Остановлено пользователем")
             break
-        except Exception as e:
-            print(f"❌ Критическая ошибка: {e}. Продолжаем перебор...")
-            await asyncio.sleep(5)
 
-    print("🛑 Бот завершил работу.")
+    # Принудительно останавливаем цикл событий и закрываем все ресурсы
+    print("🛑 Завершаем работу...")
+    await asyncio.sleep(0.2)
+    # Отменяем все оставшиеся задачи (если есть)
+    tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+    for task in tasks:
+        task.cancel()
+    await asyncio.gather(*tasks, return_exceptions=True)
+    # Закрываем цикл событий
+    loop = asyncio.get_event_loop()
+    await loop.shutdown_asyncgens()
+    loop.close()
 if __name__ == "__main__":
     asyncio.run(main())
