@@ -18,6 +18,7 @@ from aiogram.utils.markdown import hlink
 from aiogram.client.session.aiohttp import AiohttpSession
 import ssl
 from aiohttp import TCPConnector
+import warnings
 
 # ========== ДОБАВЛЕНО ДЛЯ ПРОКСИ ==========
 import random
