@@ -18,11 +18,14 @@ from aiogram.utils.markdown import hlink
 from aiogram.client.session.aiohttp import AiohttpSession
 import ssl
 from aiohttp import TCPConnector
+import warnings
 
 # ========== ДОБАВЛЕНО ДЛЯ ПРОКСИ ==========
 import random
 import aiohttp
 from aiogram.exceptions import TelegramNetworkError
+warnings.filterwarnings("ignore", message=".*Unclosed.*")
+warnings.filterwarnings("ignore", category=ResourceWarning)
 
 PROXY_SOURCES = [
     # ваши исходные ссылки
@@ -1244,10 +1247,6 @@ async def bw(message: types.Message, bot: Bot):
 
 # ========== ДОБАВЛЕННЫЙ ЗАПУСК С ПЕРЕБОРОМ ПРОКСИ ==========
 
-import ssl
-import aiohttp
-from aiogram import Bot
-from aiogram.client.session.aiohttp import AiohttpSession
 
 
 class SafeAiohttpSession(AiohttpSession):
