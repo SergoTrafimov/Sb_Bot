@@ -1294,10 +1294,26 @@ async def run_bot_with_proxy(proxy_url: str):
     except Exception as e:
         print(f"❗ Неожиданная ошибка при работе с прокси {proxy_url}: {e}")
         raise RuntimeError(f"Неожиданная ошибка: {e}") from e
+        # ... внутри run_bot_with_proxy ...
     finally:
-        # ГАРАНТИРОВАННОЕ ЗАКРЫТИЕ – сначала бота, потом сессии
+        # Закрываем сессию бота
         await bot.session.close()
+        # Закрываем нашу кастомную сессию
         await session.close()
+
+        # Добавляем принудительное закрытие внутреннего коннектора
+        # Используем _get_connector для получения коннектора
+        connector = getattr(session, '_get_connector', None)
+        if connector:
+            try:
+                conn = connector()
+                if not conn.closed:
+                    await conn.close()
+            except Exception:
+                pass
+
+        # Небольшая пауза для гарантии
+        await asyncio.sleep(0.1)
 
 
 async def main():
