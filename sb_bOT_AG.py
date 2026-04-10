@@ -106,10 +106,10 @@ async def vkl(message: types.Message):
 async  def clean(message:types.Message):
     chat_id=message.chat.id
     message_id=message.reply_to_message.message_id
-    await bot.request(
-    method="setMessageReaction",
-    data={"chat_id": chat_id, "message_id": message_id, "reaction": []}
-)
+    bot.session.make_request(
+        method="setMessageReaction",
+        data={"chat_id": chat_id, "message_id": message_id, "reaction": []}
+    )
     print(chat_id)
 
 
