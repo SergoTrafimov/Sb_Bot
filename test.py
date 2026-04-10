@@ -6,7 +6,7 @@ import string
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command, ChatMemberUpdatedFilter, IS_NOT_MEMBER, IS_MEMBER
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
-from aiogram.types import ChatPermissions, ChatMemberUpdated, ContentType
+from aiogram.types import ChatPermissions, ChatMemberUpdated, ContentType, MessageReactionUpdated
 from aiogram.enums import ChatMemberStatus
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -15,10 +15,47 @@ from constant import TOKEN, TO_CHAT_ID, ALLOWED_CHANNELS, ida, helpt, get_chat_i
 import re
 from aiogram.utils.markdown import hlink
 
-bot = Bot(token=TOKEN)
+bot = Bot(token='8265240419:AAFsardqKlSQxsYAHq8KwU1VlsReJw7AvWc')
 dp = Dispatcher()
 db = sqlite3.connect('sb.db')
-cursor = db.cursor()
+
+
+
+
+@dp.message_reaction()
+async def handle_spam_reaction(event: MessageReactionUpdated, bot: Bot):
+    # 1. Игнорируем реакции самого бота
+    if event.user.id == bot.id:
+        return
+
+    # 2. Проверяем, является ли бот администратором
+    # 3. Получаем био пользователя, поставившего реакцию
+    try:
+        user_info = await bot.get_chat(event.user.id)
+        user_bio = user_info.bio or ""
+    except Exception as e:
+        print(f"Could not get bio for user {event.user.id}: {e}")
+        return
+
+    # 4. Проверяем био на наличие ссылки
+    if "http" in user_bio or "t.me" in user_bio: # Пример условия для спама
+        # Блокируем пользователя с очисткой его сообщений
+        await bot.ban_chat_member(
+            chat_id=event.chat.id,
+            user_id=event.user.id,
+            revoke_messages=True  # <-- Удаляет все сообщения пользователя
+        )
+
+        # Удаляем сообщение, на которое поставили реакцию
+        await bot.delete_message(
+            chat_id=event.chat.id,
+            message_id=event.message_id
+        )
+
+
+
+
+'''cursor = db.cursor()
 on=1
 
 g = InlineKeyboardBuilder()
@@ -121,7 +158,7 @@ async def rep(message:types.Message):
             await message.reply('Используй это в ответ на сообщение')
             await message.delete()
 
-
+'''
 async def main():
     await dp.start_polling(bot)
 
