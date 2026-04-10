@@ -100,6 +100,17 @@ async def vkl(message: types.Message):
         await message.delete()
 
 
+        
+
+@dp.message(Command('clean'))
+async  def clean(message:types.Message):
+    chat_id=message.chat.id
+    message_id=message.reply_to_message.message_id
+    await bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction=[])
+
+
+
+
 async def open_chat_full_permissions(message: types.Message):
     chat_id = message.chat.id
     user_id = message.from_user.id
