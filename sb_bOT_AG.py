@@ -1048,7 +1048,10 @@ async def bw(message: types.Message):
         for word in soo:
             for pattern in banwordlist:
                 if fnmatch.fnmatch(word.lower(), pattern):  # Проверяем в нижнем регистре
-                    found_ban_word = True
+                    if fnmatch.fnmatch(word.lower(), "*спидран*"):
+                        found_ban_word = False
+                    else:
+                        found_ban_word = True
                     break  # Прерываем внутренний цикл
             if found_ban_word:
                 break  # Прерываем внешний цикл
